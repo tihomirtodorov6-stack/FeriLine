@@ -1,8 +1,15 @@
 
-import React from "react";
+import React, { useState } from "react";
 import "./styles.css";
+import Register from "./Register";
 
 export default function App() {
+  const [page, setPage] = useState("home");
+
+  if (page === "register") {
+    return <Register />;
+  }
+
   return (
     <div className="feriline-home">
       <div className="logo">
@@ -15,7 +22,10 @@ export default function App() {
         Connect. Chat. Share.
       </p>
 
-      <button className="primary-btn">
+      <button
+        className="primary-btn"
+        onClick={() => setPage("register")}
+      >
         Create account
       </button>
 
