@@ -5,7 +5,7 @@ export default function ChatList() {
   const [activeChat, setActiveChat] = useState("");
 
   if (activeChat) {
-    return <ChatRoom />;
+    return <ChatRoom onBack={() => setActiveChat("")} />;
   }
 
   return (
