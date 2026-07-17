@@ -1,6 +1,8 @@
 import React from "react";
+import ChatRoom from "./ChatRoom";
 
 export default function ChatList() {
+  const [activeChat, setActiveChat] = React.useState("");
 
   function logout() {
     localStorage.setItem(
@@ -11,6 +13,14 @@ export default function ChatList() {
     window.location.reload();
   }
 
+  if (activeChat === "Alex") {
+    return (
+      <ChatRoom
+        onBack={() => setActiveChat("")}
+      />
+    );
+  }
+
   return (
     <div className="chat-list">
 
@@ -18,7 +28,10 @@ export default function ChatList() {
 
       <h2>Chats</h2>
 
-      <div>
+      <div
+        onClick={() => setActiveChat("Alex")}
+        style={{ cursor: "pointer" }}
+      >
         <p>👤 Alex</p>
         <p>Last message: Hello!</p>
       </div>
