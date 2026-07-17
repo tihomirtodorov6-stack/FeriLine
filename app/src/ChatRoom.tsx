@@ -35,13 +35,15 @@ export default function ChatRoom({ onBack }: { onBack: () => void }) {
     <div className="chat-room">
 
       <div className="chat-header">
-        <button onClick={onBack}>
-          ←
+        <button
+          className="back-btn"
+          onClick={onBack}
+        >
+          ← Back
         </button>
 
         <h2>Alex</h2>
       </div>
-
 
       <div className="messages">
         {messages.map((msg, index) => (
@@ -54,7 +56,6 @@ export default function ChatRoom({ onBack }: { onBack: () => void }) {
         ))}
       </div>
 
-
       <div className="message-input">
 
         <input
@@ -64,7 +65,9 @@ export default function ChatRoom({ onBack }: { onBack: () => void }) {
           onChange={(e) => setMessage(e.target.value)}
         />
 
-        <button onClick={sendMessage}>
+        <button
+          onClick={sendMessage}
+        >
           Send
         </button>
 
