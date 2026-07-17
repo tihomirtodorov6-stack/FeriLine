@@ -1,8 +1,14 @@
 import React, { useState } from "react";
+import ChatList from "./ChatList";
 
 export default function Register() {
   const [phone, setPhone] = useState("");
   const [codeSent, setCodeSent] = useState(false);
+  const [verified, setVerified] = useState(false);
+
+  if (verified) {
+    return <ChatList />;
+  }
 
   return (
     <div className="feriline-home">
@@ -37,7 +43,10 @@ export default function Register() {
             placeholder="000000"
           />
 
-          <button className="primary-btn">
+          <button
+            className="primary-btn"
+            onClick={() => setVerified(true)}
+          >
             Verify
           </button>
         </>
