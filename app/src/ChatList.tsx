@@ -1,36 +1,44 @@
-import React, { useState } from "react";
-import ChatRoom from "./ChatRoom";
+import React from "react";
 
 export default function ChatList() {
-  const [activeChat, setActiveChat] = useState("");
 
-  if (activeChat) {
-    return <ChatRoom onBack={() => setActiveChat("")} />;
+  function logout() {
+    localStorage.setItem(
+      "ferilineLoggedIn",
+      "false"
+    );
+
+    window.location.reload();
   }
 
   return (
-    <div className="feriline-home">
+    <div className="chat-list">
 
       <h1>FeriLine</h1>
 
       <h2>Chats</h2>
 
-      <div
-        onClick={() => setActiveChat("Alex")}
-      >
+      <div>
         <p>👤 Alex</p>
         <p>Last message: Hello!</p>
       </div>
 
-      <div
-        onClick={() => setActiveChat("Maria")}
-      >
+      <div>
         <p>👤 Maria</p>
         <p>Last message: See you soon</p>
       </div>
 
-      <button className="primary-btn">
+      <button>
         New chat
+      </button>
+
+      <br />
+
+      <button
+        className="primary-btn"
+        onClick={logout}
+      >
+        Logout
       </button>
 
     </div>
