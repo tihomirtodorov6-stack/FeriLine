@@ -1,0 +1,9 @@
+{
+  "name": "FeriLine",
+  "short_name": "FeriLine",
+  "description": "Modern messaging app",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000"
+}
