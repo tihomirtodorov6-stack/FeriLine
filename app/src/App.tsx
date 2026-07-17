@@ -4,24 +4,35 @@ import Register from "./Register";
 import ChatList from "./ChatList";
 
 export default function App() {
-  const [page, setPage] = useState("home");
+  const savedUser = localStorage.getItem("ferilineUser");
+  const loggedIn = localStorage.getItem("ferilineLoggedIn");
+
+  const [page, setPage] = useState(
+    savedUser && loggedIn === "true" ? "chat" : "home"
+  );
+
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
 
   function login() {
-    const savedUser = localStorage.getItem("ferilineUser");
+    const saved = localStorage.getItem("ferilineUser");
 
-    if (!savedUser) {
-      alert("No account found. Create an account first.");
+    if (!saved) {
+      alert("No account found");
       return;
     }
 
-    const user = JSON.parse(savedUser);
+    const user = JSON.parse(saved);
 
     if (
       (name === user.firstName || name === user.lastName) &&
       pin === user.pin
     ) {
+      localStorage.setItem(
+        "ferilineLoggedIn",
+        "true"
+      );
+
       setPage("chat");
     } else {
       alert("Wrong name or PIN");
@@ -38,6 +49,7 @@ export default function App() {
 
   return (
     <div className="feriline-home">
+
       <div className="logo">
         F
       </div>
@@ -58,7 +70,6 @@ export default function App() {
       <h2>Login</h2>
 
       <input
-        type="text"
         placeholder="Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -72,11 +83,12 @@ export default function App() {
       />
 
       <button
-        className="secondary-btn"
+        className="primary-btn"
         onClick={login}
       >
         Login
       </button>
+
     </div>
   );
 }
