@@ -6,11 +6,13 @@ export default function ChatRoom({ onBack }: { onBack: () => void }) {
   const [messages, setMessages] = useState([
     {
       sender: "Alex",
-      text: "Hello!"
+      text: "Hello!",
+      mine: false
     },
     {
       sender: "You",
-      text: "Hi, welcome to FeriLine"
+      text: "Hi, welcome to FeriLine",
+      mine: true
     }
   ]);
 
@@ -21,7 +23,8 @@ export default function ChatRoom({ onBack }: { onBack: () => void }) {
       ...messages,
       {
         sender: "You",
-        text: message
+        text: message,
+        mine: true
       }
     ]);
 
@@ -29,38 +32,43 @@ export default function ChatRoom({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <div className="feriline-home">
+    <div className="chat-room">
 
-      <button
-        className="secondary-btn"
-        onClick={onBack}
-      >
-        ← Back
-      </button>
+      <div className="chat-header">
+        <button onClick={onBack}>
+          ←
+        </button>
 
-      <h1>Chat with Alex</h1>
+        <h2>Alex</h2>
+      </div>
 
-      <div>
+
+      <div className="messages">
         {messages.map((msg, index) => (
-          <p key={index}>
-            <b>{msg.sender}:</b> {msg.text}
-          </p>
+          <div
+            key={index}
+            className={msg.mine ? "message mine" : "message"}
+          >
+            {msg.text}
+          </div>
         ))}
       </div>
 
-      <input
-        type="text"
-        placeholder="Type a message..."
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-      />
 
-      <button
-        className="primary-btn"
-        onClick={sendMessage}
-      >
-        Send
-      </button>
+      <div className="message-input">
+
+        <input
+          type="text"
+          placeholder="Message..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+        />
+
+        <button onClick={sendMessage}>
+          Send
+        </button>
+
+      </div>
 
     </div>
   );
