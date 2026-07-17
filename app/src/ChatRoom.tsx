@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export default function ChatRoom() {
+export default function ChatRoom({ onBack }: { onBack: () => void }) {
   const [message, setMessage] = useState("");
 
   const [messages, setMessages] = useState([
@@ -31,15 +31,20 @@ export default function ChatRoom() {
   return (
     <div className="feriline-home">
 
+      <button
+        className="secondary-btn"
+        onClick={onBack}
+      >
+        ← Back
+      </button>
+
       <h1>Chat with Alex</h1>
 
       <div>
         {messages.map((msg, index) => (
-          <div key={index}>
-            <p>
-              <b>{msg.sender}:</b> {msg.text}
-            </p>
-          </div>
+          <p key={index}>
+            <b>{msg.sender}:</b> {msg.text}
+          </p>
         ))}
       </div>
 
