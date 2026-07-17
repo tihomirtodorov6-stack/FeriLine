@@ -1,8 +1,28 @@
-import React from "react";
+import React, { useState } from "react";
 import ChatRoom from "./ChatRoom";
 
 export default function ChatList() {
-  const [activeChat, setActiveChat] = React.useState("");
+
+  const [selectedContact, setSelectedContact] = useState<string | null>(null);
+
+  const contacts = [
+    {
+      id: 1,
+      name: "Alex",
+      lastMessage: "Hello!"
+    },
+    {
+      id: 2,
+      name: "Maria",
+      lastMessage: "See you soon"
+    },
+    {
+      id: 3,
+      name: "Ivan",
+      lastMessage: "Hi there"
+    }
+  ];
+
 
   function logout() {
     localStorage.setItem(
@@ -13,13 +33,16 @@ export default function ChatList() {
     window.location.reload();
   }
 
-  if (activeChat === "Alex") {
+
+  if (selectedContact) {
     return (
       <ChatRoom
-        onBack={() => setActiveChat("")}
+        name={selectedContact}
+        onBack={() => setSelectedContact(null)}
       />
     );
   }
+
 
   return (
     <div className="chat-list">
@@ -28,24 +51,35 @@ export default function ChatList() {
 
       <h2>Chats</h2>
 
-      <div
-        onClick={() => setActiveChat("Alex")}
-        style={{ cursor: "pointer" }}
-      >
-        <p>👤 Alex</p>
-        <p>Last message: Hello!</p>
-      </div>
 
-      <div>
-        <p>👤 Maria</p>
-        <p>Last message: See you soon</p>
-      </div>
+      {contacts.map((contact) => (
+
+        <div
+          key={contact.id}
+          onClick={() => setSelectedContact(contact.name)}
+          style={{
+            cursor: "pointer",
+            padding: "15px"
+          }}
+        >
+
+          <h3>
+            👤 {contact.name}
+          </h3>
+
+          <p>
+            {contact.lastMessage}
+          </p>
+
+        </div>
+
+      ))}
+
 
       <button>
         New chat
       </button>
 
-      <br />
 
       <button
         className="primary-btn"
@@ -53,6 +87,7 @@ export default function ChatList() {
       >
         Logout
       </button>
+
 
     </div>
   );
