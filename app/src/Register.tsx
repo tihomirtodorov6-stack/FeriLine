@@ -7,12 +7,11 @@ export default function Register() {
   const [birthDate, setBirthDate] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const [feriId, setFeriId] = useState("");
   const [registered, setRegistered] = useState(false);
 
   function createAccount() {
     if (!firstName || !lastName || !birthDate || !pin) {
-      alert("Please fill all fields");
+      alert("Fill all fields");
       return;
     }
 
@@ -21,10 +20,22 @@ export default function Register() {
       return;
     }
 
-    const newId =
+    const feriId =
       "FL-" + Math.floor(10000000 + Math.random() * 90000000);
 
-    setFeriId(newId);
+    const user = {
+      firstName,
+      lastName,
+      birthDate,
+      pin,
+      feriId
+    };
+
+    localStorage.setItem(
+      "ferilineUser",
+      JSON.stringify(user)
+    );
+
     setRegistered(true);
   }
 
@@ -34,26 +45,26 @@ export default function Register() {
 
   return (
     <div className="feriline-home">
-      <div className="logo">F</div>
+
+      <div className="logo">
+        F
+      </div>
 
       <h1>Create account</h1>
 
       <input
-        type="text"
         placeholder="First name"
         value={firstName}
         onChange={(e) => setFirstName(e.target.value)}
       />
 
       <input
-        type="text"
         placeholder="Last name"
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
       />
 
       <input
-        type="text"
         placeholder="Birth date DD/MM/YYYY"
         value={birthDate}
         onChange={(e) => setBirthDate(e.target.value)}
@@ -80,9 +91,6 @@ export default function Register() {
         Register
       </button>
 
-      {feriId && (
-        <p>Your FeriLine ID: {feriId}</p>
-      )}
     </div>
   );
 }
