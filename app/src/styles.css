@@ -42,16 +42,8 @@ h1 {
   margin: 0 0 10px;
 }
 
-p {
-  font-size: 20px;
-  opacity: 0.8;
-  margin-bottom: 40px;
-}
-
 button {
-  width: 280px;
-  padding: 16px;
-  margin: 8px;
+  padding: 14px 25px;
   border-radius: 30px;
   font-size: 18px;
   cursor: pointer;
@@ -67,7 +59,12 @@ button {
   background: transparent;
   color: white;
   border: 2px solid white;
-}.chat-room {
+}
+
+
+/* CHAT */
+
+.chat-room {
   min-height: 100vh;
   background: #111111;
   color: white;
@@ -83,10 +80,10 @@ button {
   border-bottom: 1px solid #333;
 }
 
-.chat-header button {
-  width: auto;
-  padding: 10px 15px;
-  margin: 0;
+.back-btn {
+  background: transparent;
+  color: white;
+  border: 1px solid white;
 }
 
 .messages {
@@ -122,10 +119,4 @@ button {
   padding: 14px;
   border-radius: 25px;
   border: none;
-}
-
-.message-input button {
-  width: auto;
-  padding: 14px 20px;
-  margin: 0;
 }
