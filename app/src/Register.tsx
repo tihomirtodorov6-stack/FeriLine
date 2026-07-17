@@ -36,6 +36,11 @@ export default function Register() {
       JSON.stringify(user)
     );
 
+    localStorage.setItem(
+      "ferilineLoggedIn",
+      "true"
+    );
+
     setRegistered(true);
   }
 
