@@ -27,7 +27,7 @@ export default function ChatList() {
 
 
 
-    const { data, error } = await supabase
+    const { data: contactData, error } = await supabase
       .from("contacts")
       .select("*")
       .or(
@@ -42,18 +42,11 @@ export default function ChatList() {
 
 
 
-    const friendIds = data.map((item)=> 
+    const friendIds = contactData.map((item:any)=>
       item.user_id === currentUser.id
       ? item.friend_id
       : item.user_id
     );
-
-
-
-    if(friendIds.length === 0){
-      setContacts([]);
-      return;
-    }
 
 
 
@@ -64,9 +57,39 @@ export default function ChatList() {
 
 
 
-    setContacts(users || []);
+    const usersWithMessages = await Promise.all(
+      (users || []).map(async(user:any)=>{
+
+
+        const { data: lastMessage } = await supabase
+          .from("messages")
+          .select("*")
+          .or(
+            `and(sender_id.eq.${currentUser.id},receiver_id.eq.${user.id}),and(sender_id.eq.${user.id},receiver_id.eq.${currentUser.id})`
+          )
+          .order("created_at", {
+            ascending:false
+          })
+          .limit(1)
+          .single();
+
+
+
+        return {
+          ...user,
+          lastMessage: lastMessage || null
+        };
+
+
+      })
+    );
+
+
+
+    setContacts(usersWithMessages);
 
   }
+
 
 
 
@@ -115,9 +138,11 @@ export default function ChatList() {
     return (
 
       <AddFriend
+
         onBack={()=>
           setAddFriend(false)
         }
+
 
         onStartChat={(user)=>{
 
@@ -167,15 +192,11 @@ export default function ChatList() {
 
 
           <div
-
             key={user.id}
-
             className="contact"
-
             onClick={()=>
               setSelectedContact(user)
             }
-
           >
 
 
@@ -189,13 +210,19 @@ export default function ChatList() {
 
             <div className="contact-info">
 
+
               <h3>
                 {user.name}
               </h3>
 
 
               <p>
-                {user.phone}
+
+                {user.lastMessage
+                  ? user.lastMessage.text
+                  : user.phone
+                }
+
               </p>
 
 
@@ -215,9 +242,7 @@ export default function ChatList() {
 
 
 
-      <button
-        onClick={logout}
-      >
+      <button onClick={logout}>
         Logout
       </button>
 
