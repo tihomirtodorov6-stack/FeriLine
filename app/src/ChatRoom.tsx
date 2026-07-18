@@ -14,13 +14,13 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
   const otherUser = contact || {
-    id:null,
-    name:name
+    id: null,
+    name: name
   };
 
 
 
-  async function loadHistory(){
+  async function loadHistory() {
 
     const { data } = await supabase
       .from("messages")
@@ -31,7 +31,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       .order(
         "created_at",
         {
-          ascending:true
+          ascending: true
         }
       );
 
@@ -43,8 +43,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
-  useEffect(()=>{
+  useEffect(() => {
 
     if(!currentUser.id || !otherUser.id){
       return;
@@ -52,7 +51,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     loadHistory();
-
 
 
     const channel = supabase
@@ -72,17 +70,25 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
           if(
-            (msg.sender_id===currentUser.id &&
-             msg.receiver_id===otherUser.id)
-             ||
-            (msg.sender_id===otherUser.id &&
-             msg.receiver_id===currentUser.id)
+            (msg.sender_id === currentUser.id &&
+             msg.receiver_id === otherUser.id)
+            ||
+            (msg.sender_id === otherUser.id &&
+             msg.receiver_id === currentUser.id)
           ){
 
-            setMessages(old=>[
-              ...old,
-              msg
-            ]);
+            setMessages(old=>{
+
+              if(old.some(x=>x.id===msg.id)){
+                return old;
+              }
+
+              return [
+                ...old,
+                msg
+              ];
+
+            });
 
           }
 
@@ -93,7 +99,9 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     return ()=>{
+
       supabase.removeChannel(channel);
+
     };
 
 
@@ -125,18 +133,28 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     if(error){
+
       console.log(error);
       return;
+
     }
 
 
     setText("");
 
 
-    setMessages(old=>[
-      ...old,
-      data
-    ]);
+    setMessages(old=>{
+
+      if(old.some(x=>x.id===data.id)){
+        return old;
+      }
+
+      return [
+        ...old,
+        data
+      ];
+
+    });
 
   }
 
@@ -174,7 +192,12 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
         <div className="chat-avatar">
-          {otherUser.name.charAt(0).toUpperCase()}
+
+          {otherUser.name
+            ? otherUser.name.charAt(0).toUpperCase()
+            : "F"
+          }
+
         </div>
 
 
@@ -182,6 +205,21 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         <h2>
           {otherUser.name}
         </h2>
+
+
+
+        <div className="call-buttons">
+
+          <button>
+            📞
+          </button>
+
+
+          <button>
+            📷
+          </button>
+
+        </div>
 
 
       </div>
@@ -195,7 +233,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
         {messages.map(msg=>(
 
-
           <div
             key={msg.id}
             className={
@@ -204,7 +241,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
               : "message"
             }
           >
-
 
             <div>
               {msg.text}
@@ -224,7 +260,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
           </div>
-
 
         ))}
 
