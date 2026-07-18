@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { socket } from "./socket";
+import { supabase } from "./supabase";
 
 export default function ChatRoom({
   name,
@@ -10,69 +10,75 @@ export default function ChatRoom({
 }) {
 
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<any[]>([]);
+  const [friend, setFriend] = useState<any>(null);
 
-  const [messages, setMessages] = useState([
-    {
-      text: "Hello!",
-      mine: false
-    }
-  ]);
 
 
   useEffect(() => {
 
-    const savedUser = localStorage.getItem("ferilineUser");
-
-    let userId = "unknown";
-
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
-
-      userId =
-        user.firstName ||
-        user.lastName ||
-        "unknown";
-    }
-
-
-    socket.emit(
-      "register",
-      userId
-    );
-
-
-    socket.on(
-      "message",
-      (data) => {
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            text: data.text,
-            mine: false
-          }
-        ]);
-
-      }
-    );
-
-
-    return () => {
-
-      socket.off(
-        "message"
-      );
-
-    };
-
+    loadFriend();
 
   }, []);
 
 
 
-  function sendMessage() {
+  async function loadFriend() {
 
-    if (message.trim() === "") {
+    const { data } = await supabase
+      .from("users")
+      .select("id,name,phone")
+      .eq("name", name)
+      .single();
+
+
+    if (data) {
+
+      setFriend(data);
+      loadMessages(data.id);
+
+    }
+
+  }
+
+
+
+  async function loadMessages(friendId: string) {
+
+    const savedUser =
+      localStorage.getItem("ferilineUser");
+
+
+    if (!savedUser) {
+      return;
+    }
+
+
+    const currentUser =
+      JSON.parse(savedUser);
+
+
+
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .or(
+        `and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`
+      )
+      .order("created_at", {
+        ascending: true
+      });
+
+
+    setMessages(data || []);
+
+  }
+
+
+
+  async function sendMessage() {
+
+    if (!message.trim() || !friend) {
       return;
     }
 
@@ -81,42 +87,42 @@ export default function ChatRoom({
       localStorage.getItem("ferilineUser");
 
 
-    let sender = "unknown";
+    if (!savedUser) {
+      return;
+    }
 
 
-    if (savedUser) {
+    const currentUser =
+      JSON.parse(savedUser);
 
-      const user =
-        JSON.parse(savedUser);
 
-      sender =
-        user.firstName ||
-        user.lastName ||
-        "unknown";
+
+    const { data, error } = await supabase
+      .from("messages")
+      .insert([
+        {
+          sender_id: currentUser.id,
+          receiver_id: friend.id,
+          text: message
+        }
+      ])
+      .select()
+      .single();
+
+
+
+    if (error) {
+
+      console.log(error);
+      return;
 
     }
 
 
-
-    socket.emit(
-      "message",
-      {
-        sender: sender,
-        receiver: name,
-        text: message
-      }
-    );
-
-
-
     setMessages((prev) => [
       ...prev,
-      {
-        text: message,
-        mine: true
-      }
+      data
     ]);
-
 
 
     setMessage("");
@@ -144,19 +150,22 @@ export default function ChatRoom({
           {name}
         </h2>
 
+
       </div>
 
 
 
       <div className="messages">
 
-        {messages.map(
-          (msg, index) => (
+        {messages.map((msg) => (
 
           <div
-            key={index}
+            key={msg.id}
             className={
-              msg.mine
+              msg.sender_id ===
+              JSON.parse(
+                localStorage.getItem("ferilineUser") || "{}"
+              ).id
               ? "message mine"
               : "message"
             }
@@ -175,17 +184,11 @@ export default function ChatRoom({
       <div className="message-input">
 
         <input
-
-          type="text"
-
           placeholder="Message..."
-
           value={message}
-
           onChange={(e) =>
             setMessage(e.target.value)
           }
-
         />
 
 
@@ -202,4 +205,5 @@ export default function ChatRoom({
     </div>
 
   );
+
 }
