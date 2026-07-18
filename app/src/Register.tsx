@@ -1,102 +1,59 @@
-import React, { useState } from "react";
-import { socket } from "./socket";
+import { useState } from "react";
+import { supabase } from "./supabase";
 
 export default function Register() {
-
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
+  const [message, setMessage] = useState("");
 
+  async function registerUser() {
+    const { error } = await supabase
+      .from("users")
+      .insert([
+        {
+          name: name,
+          phone: phone,
+          pin: pin
+        }
+      ]);
 
-  function register() {
-
-    if (
-      name.trim() === "" ||
-      phone.trim() === "" ||
-      pin.trim() === ""
-    ) {
-      alert("Fill all fields");
+    if (error) {
+      setMessage("Грешка: " + error.message);
       return;
     }
 
-
-    const user = {
-      name,
-      phone,
-      pin
-    };
-
-
-    localStorage.setItem(
-      "ferilineUser",
-      JSON.stringify(user)
-    );
-
-
-    socket.emit(
-      "registerUser",
-      user
-    );
-
-
-    alert("Account created");
-
-
-    window.location.reload();
-
+    setMessage("Регистрацията е успешна!");
   }
 
-
-
   return (
-    <div className="feriline-home">
-
-      <div className="logo">
-        F
-      </div>
-
-
-      <h1>
-        Create FeriLine account
-      </h1>
-
+    <div>
+      <h2>FeriLine регистрация</h2>
 
       <input
-        placeholder="Name"
+        placeholder="Име"
         value={name}
-        onChange={(e) =>
-          setName(e.target.value)
-        }
+        onChange={(e) => setName(e.target.value)}
       />
 
-
       <input
-        placeholder="Phone number"
+        placeholder="Телефон"
         value={phone}
-        onChange={(e) =>
-          setPhone(e.target.value)
-        }
+        onChange={(e) => setPhone(e.target.value)}
       />
 
-
       <input
-        type="password"
         placeholder="PIN"
         value={pin}
-        onChange={(e) =>
-          setPin(e.target.value)
-        }
+        onChange={(e) => setPin(e.target.value)}
+        maxLength={4}
       />
 
-
-      <button
-        className="primary-btn"
-        onClick={register}
-      >
-        Create account
+      <button onClick={registerUser}>
+        Регистрация
       </button>
 
-
+      <p>{message}</p>
     </div>
   );
 }
