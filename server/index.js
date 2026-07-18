@@ -8,11 +8,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
 app.get("/", (req, res) => {
   res.send("FeriLine Server is running");
 });
 
+
 const server = http.createServer(app);
+
 
 const io = new Server(server, {
   cors: {
@@ -20,34 +23,134 @@ const io = new Server(server, {
   },
 });
 
+
+// временна база потребители
 const users = {};
 
+
+// връзки онлайн
+const onlineUsers = {};
+
+
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
 
-  socket.on("register", (userId) => {
-    users[userId] = socket.id;
-    console.log("Registered:", userId);
+  console.log(
+    "User connected:",
+    socket.id
+  );
+
+
+  // създаване/регистрация на потребител
+  socket.on("registerUser", (user) => {
+
+    users[user.id] = {
+      id: user.id,
+      name: user.name
+    };
+
+
+    onlineUsers[user.id] = socket.id;
+
+
+    console.log(
+      "Registered user:",
+      user
+    );
+
+
+    socket.emit(
+      "registered",
+      users[user.id]
+    );
+
   });
 
-  socket.on("message", (data) => {
-    const receiverSocket = users[data.receiver];
 
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("message", {
-        sender: data.sender,
-        text: data.text,
-      });
+
+  // търсене на потребител
+  socket.on(
+    "findUser",
+    (id) => {
+
+      const user = users[id];
+
+
+      if (user) {
+
+        socket.emit(
+          "userFound",
+          user
+        );
+
+      } else {
+
+        socket.emit(
+          "userNotFound"
+        );
+
+      }
+
     }
-  });
+  );
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
+
+
+  // изпращане на съобщение
+  socket.on(
+    "message",
+    (data) => {
+
+
+      const receiver =
+        onlineUsers[data.receiver];
+
+
+      if (receiver) {
+
+        io.to(receiver)
+          .emit(
+            "message",
+            {
+              sender: data.sender,
+              text: data.text
+            }
+          );
+
+      }
+
+
+    }
+  );
+
+
+
+  socket.on(
+    "disconnect",
+    () => {
+
+      console.log(
+        "Disconnected:",
+        socket.id
+      );
+
+    }
+  );
+
+
 });
+
+
 
 const PORT = 3000;
 
-server.listen(PORT, () => {
-  console.log(`FeriLine server running on port ${PORT}`);
-});
+
+server.listen(
+  PORT,
+  () => {
+
+    console.log(
+      `FeriLine server running on port ${PORT}`
+    );
+
+  }
+);
