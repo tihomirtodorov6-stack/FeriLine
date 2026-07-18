@@ -28,8 +28,9 @@ const io = new Server(server, {
 const users = {};
 
 
-// връзки онлайн
+// активни връзки
 const onlineUsers = {};
+
 
 
 io.on("connection", (socket) => {
@@ -40,62 +41,85 @@ io.on("connection", (socket) => {
   );
 
 
-  // създаване/регистрация на потребител
-  socket.on("registerUser", (user) => {
 
-    users[user.id] = {
-      id: user.id,
-      name: user.name
-    };
-
-
-    onlineUsers[user.id] = socket.id;
-
-
-    console.log(
-      "Registered user:",
-      user
-    );
-
-
-    socket.emit(
-      "registered",
-      users[user.id]
-    );
-
-  });
-
-
-
-  // търсене на потребител
+  // регистрация с телефон
   socket.on(
-    "findUser",
-    (id) => {
-
-      const user = users[id];
+    "registerUser",
+    (user) => {
 
 
-      if (user) {
+      users[user.phone] = {
 
-        socket.emit(
-          "userFound",
-          user
-        );
+        name: user.name,
 
-      } else {
+        phone: user.phone
 
-        socket.emit(
-          "userNotFound"
-        );
+      };
 
-      }
+
+      onlineUsers[user.phone] =
+        socket.id;
+
+
+
+      console.log(
+        "Registered:",
+        users[user.phone]
+      );
+
+
+
+      socket.emit(
+        "registered",
+        users[user.phone]
+      );
+
 
     }
   );
 
 
 
-  // изпращане на съобщение
+
+  // търсене по телефон
+  socket.on(
+    "findUser",
+    (phone) => {
+
+
+      const user =
+        users[phone];
+
+
+
+      if (user) {
+
+
+        socket.emit(
+          "userFound",
+          user
+        );
+
+
+      } else {
+
+
+        socket.emit(
+          "userNotFound"
+        );
+
+
+      }
+
+
+    }
+  );
+
+
+
+
+
+  // съобщения
   socket.on(
     "message",
     (data) => {
@@ -105,16 +129,22 @@ io.on("connection", (socket) => {
         onlineUsers[data.receiver];
 
 
+
       if (receiver) {
+
 
         io.to(receiver)
           .emit(
             "message",
             {
+
               sender: data.sender,
+
               text: data.text
+
             }
           );
+
 
       }
 
@@ -124,14 +154,18 @@ io.on("connection", (socket) => {
 
 
 
+
+
   socket.on(
     "disconnect",
     () => {
 
+
       console.log(
-        "Disconnected:",
+        "User disconnected:",
         socket.id
       );
+
 
     }
   );
