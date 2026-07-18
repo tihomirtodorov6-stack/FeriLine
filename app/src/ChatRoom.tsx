@@ -5,7 +5,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
-  const [debug, setDebug] = useState("");
 
   const bottomRef = useRef<any>(null);
 
@@ -21,7 +20,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   async function loadHistory() {
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("messages")
       .select("*")
       .or(
@@ -30,12 +29,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       .order("created_at", {
         ascending: true
       });
-
-
-    if (error) {
-      setDebug(error.message);
-      return;
-    }
 
 
     setMessages(data || []);
@@ -47,24 +40,8 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   useEffect(() => {
 
     if (!currentUser.id || !otherUser.id) {
-
-      setDebug(
-        "Липсва ID. Аз: " +
-        currentUser.id +
-        " Друг: " +
-        otherUser.id
-      );
-
       return;
     }
-
-
-    setDebug(
-      "Чат: " +
-      currentUser.id +
-      " -> " +
-      otherUser.id
-    );
 
 
     loadHistory();
@@ -115,6 +92,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       .subscribe();
 
 
+
     return () => {
       supabase.removeChannel(channel);
     };
@@ -135,16 +113,12 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     if(!currentUser.id || !otherUser.id){
-
-      setDebug(
-        "Няма получател. Провери contact.id"
-      );
-
       return;
     }
 
 
     const messageText = text.trim();
+
 
 
     const { data, error } = await supabase
@@ -162,13 +136,8 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     if(error){
-
-      setDebug(
-        "Грешка: " + error.message
-      );
-
+      console.log(error);
       return;
-
     }
 
 
@@ -232,22 +201,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-      {debug &&
-
-        <div style={{
-          background:"#ffe0e0",
-          padding:"8px",
-          fontSize:"12px"
-        }}>
-
-          {debug}
-
-        </div>
-
-      }
-
-
-
       <div className="messages">
 
 
@@ -294,7 +247,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
           }
 
         />
-
 
 
         <button onClick={sendMessage}>
