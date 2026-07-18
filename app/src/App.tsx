@@ -5,89 +5,156 @@ import ChatList from "./ChatList";
 import { socket } from "./socket";
 
 export default function App() {
+
   const savedUser = localStorage.getItem("ferilineUser");
   const loggedIn = localStorage.getItem("ferilineLoggedIn");
 
+
   const [page, setPage] = useState(
-    savedUser && loggedIn === "true" ? "chat" : "home"
+    savedUser && loggedIn === "true"
+      ? "chat"
+      : "home"
   );
 
-  const [name, setName] = useState("");
+
+  const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
 
+
+
   function login() {
-    const saved = localStorage.getItem("ferilineUser");
+
+    const saved =
+      localStorage.getItem("ferilineUser");
+
 
     if (!saved) {
+
       alert("No account found");
       return;
+
     }
 
-    const user = JSON.parse(saved);
+
+    const user =
+      JSON.parse(saved);
+
+
 
     if (
-      (name === user.firstName || name === user.lastName) &&
+      phone === user.phone &&
       pin === user.pin
     ) {
+
+
       localStorage.setItem(
         "ferilineLoggedIn",
         "true"
       );
 
+
       socket.connect();
 
-      const userId = user.firstName + "_" + user.lastName;
 
-      socket.emit("register", userId);
+      socket.emit(
+        "registerUser",
+        user
+      );
+
 
       setPage("chat");
+
+
     } else {
-      alert("Wrong name or PIN");
+
+
+      alert(
+        "Wrong phone or PIN"
+      );
+
+
     }
+
   }
+
+
+
 
   if (page === "register") {
+
     return <Register />;
+
   }
+
+
 
   if (page === "chat") {
+
     return <ChatList />;
+
   }
 
+
+
+
   return (
+
     <div className="feriline-home">
+
 
       <div className="logo">
         F
       </div>
 
-      <h1>FeriLine</h1>
+
+      <h1>
+        FeriLine
+      </h1>
+
 
       <p>
         Connect. Chat. Share.
       </p>
 
+
+
       <button
         className="primary-btn"
-        onClick={() => setPage("register")}
+        onClick={() =>
+          setPage("register")
+        }
       >
         Create account
       </button>
 
-      <h2>Login</h2>
+
+
+      <h2>
+        Login
+      </h2>
+
+
 
       <input
-        placeholder="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        placeholder="Phone number"
+        value={phone}
+        onChange={(e) =>
+          setPhone(e.target.value)
+        }
       />
+
+
 
       <input
         type="password"
         placeholder="PIN"
         value={pin}
-        onChange={(e) => setPin(e.target.value)}
+        onChange={(e) =>
+          setPin(e.target.value)
+        }
       />
+
+
 
       <button
         className="primary-btn"
@@ -96,6 +163,9 @@ export default function App() {
         Login
       </button>
 
+
     </div>
+
   );
+
 }
