@@ -205,4 +205,10 @@
   border-radius: 15px;
   margin: 20px auto;
   display: block;
+}.chat-list-header button {
+  width: 130px;
+  height: 55px;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 16px;
 }
