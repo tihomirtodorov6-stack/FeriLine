@@ -11,9 +11,7 @@ export default function ChatList() {
 
 
   useEffect(() => {
-
     loadContacts();
-
   }, []);
 
 
@@ -32,28 +30,38 @@ export default function ChatList() {
 
     const { data, error } = await supabase
       .from("contacts")
-      .select(`
-        id,
-        friend_id,
-        users:friend_id (
-          id,
-          name,
-          phone
-        )
-      `)
-      .eq("user_id", currentUser.id);
-
+      .select("*")
+      .or(
+        `user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`
+      );
 
 
     if (error) {
-
       console.log(error);
       return;
-
     }
 
 
-    setContacts(data || []);
+    const friendIds = data.map((item) =>
+      item.user_id === currentUser.id
+        ? item.friend_id
+        : item.user_id
+    );
+
+
+    if (friendIds.length === 0) {
+      setContacts([]);
+      return;
+    }
+
+
+    const { data: users } = await supabase
+      .from("users")
+      .select("id,name,phone")
+      .in("id", friendIds);
+
+
+    setContacts(users || []);
 
   }
 
@@ -98,6 +106,7 @@ export default function ChatList() {
         onBack={() =>
           setAddFriend(false)
         }
+
         onStartChat={(user) => {
 
           setSelectedContact(user);
@@ -141,7 +150,7 @@ export default function ChatList() {
         <div
           key={contact.id}
           onClick={() =>
-            setSelectedContact(contact.users)
+            setSelectedContact(contact)
           }
           style={{
             cursor: "pointer",
@@ -150,11 +159,12 @@ export default function ChatList() {
         >
 
           <h3>
-            👤 {contact.users?.name}
+            👤 {contact.name}
           </h3>
 
+
           <p>
-            {contact.users?.phone}
+            {contact.phone}
           </p>
 
         </div>
