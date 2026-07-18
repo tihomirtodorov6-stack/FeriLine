@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase";
+import { playMessageSound } from "./sound";
 
 export default function ChatRoom({ name, contact, onBack }: any) {
 
@@ -25,7 +26,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
     if(!currentUser.id) return;
 
-
     await supabase
       .from("user_status")
       .upsert({
@@ -50,11 +50,9 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       .single();
 
 
-
     if(data?.last_active){
 
       const last = new Date(data.last_active).getTime();
-
       const now = new Date().getTime();
 
       setOnline(
@@ -98,6 +96,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
+
   useEffect(()=>{
 
     if(!currentUser.id || !otherUser.id){
@@ -106,7 +105,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     loadHistory();
-
 
     updateMyStatus();
 
@@ -138,7 +136,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         },
         (payload)=>{
 
-          const msg:any=payload.new;
+          const msg:any = payload.new;
 
 
           if(
@@ -149,11 +147,19 @@ export default function ChatRoom({ name, contact, onBack }: any) {
              msg.receiver_id===currentUser.id)
           ){
 
+
             setMessages(old=>{
 
               if(old.some(x=>x.id===msg.id)){
                 return old;
               }
+
+
+              // звук само при получено съобщение
+              if(msg.sender_id===otherUser.id){
+                playMessageSound();
+              }
+
 
               return [
                 ...old,
@@ -161,6 +167,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
               ];
 
             });
+
 
           }
 
@@ -180,6 +187,8 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
   },[]);
+
+
 
 
 
@@ -206,8 +215,10 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     if(error){
+
       console.log(error);
       return;
+
     }
 
 
@@ -215,11 +226,15 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     setMessages(old=>[
+
       ...old,
       data
+
     ]);
 
   }
+
+
 
 
 
@@ -233,6 +248,8 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     });
 
   },[messages]);
+
+
 
 
 
@@ -257,11 +274,14 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
         <div className="chat-avatar">
+
           {otherUser.name
             ? otherUser.name.charAt(0).toUpperCase()
             : "F"
           }
+
         </div>
+
 
 
 
@@ -281,7 +301,9 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
           </span>
 
+
         </div>
+
 
 
 
@@ -295,7 +317,9 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         </div>
 
 
+
       </div>
+
 
 
 
@@ -303,25 +327,32 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
       <div className="messages">
 
+
         {messages.map(msg=>(
 
           <div
+
             key={msg.id}
+
             className={
               msg.sender_id===currentUser.id
               ? "message mine"
               : "message"
             }
+
           >
 
             {msg.text}
 
+
           </div>
+
 
         ))}
 
 
         <div ref={bottomRef}/>
+
 
       </div>
 
@@ -329,21 +360,33 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
+
+
       <div className="message-input">
 
+
         <input
+
           value={text}
+
           placeholder="Message..."
+
           onChange={(e)=>setText(e.target.value)}
+
           onKeyDown={(e)=>
             e.key==="Enter" && sendMessage()
           }
+
         />
 
 
+
         <button onClick={sendMessage}>
+
           Send
+
         </button>
+
 
 
       </div>
