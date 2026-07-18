@@ -43,6 +43,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
+
   useEffect(() => {
 
     if(!currentUser.id || !otherUser.id){
@@ -133,10 +134,8 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     if(error){
-
       console.log(error);
       return;
-
     }
 
 
@@ -192,19 +191,26 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
         <div className="chat-avatar">
-
           {otherUser.name
             ? otherUser.name.charAt(0).toUpperCase()
             : "F"
           }
-
         </div>
 
 
 
-        <h2>
-          {otherUser.name}
-        </h2>
+        <div className="user-title">
+
+          <h2>
+            {otherUser.name}
+          </h2>
+
+          <span className="online-status">
+            ● Online
+          </span>
+
+        </div>
+
 
 
 
@@ -264,7 +270,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         ))}
 
 
-
         <div ref={bottomRef}/>
 
 
@@ -287,9 +292,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         />
 
 
-        <button
-          onClick={sendMessage}
-        >
+        <button onClick={sendMessage}>
           Send
         </button>
 
