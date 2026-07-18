@@ -50,6 +50,13 @@ export default function ChatList() {
 
 
 
+    if(friendIds.length === 0){
+      setContacts([]);
+      return;
+    }
+
+
+
     const { data: users } = await supabase
       .from("users")
       .select("id,name,phone")
@@ -86,6 +93,22 @@ export default function ChatList() {
 
 
 
+    usersWithMessages.sort((a:any,b:any)=>{
+
+      if(!a.lastMessage) return 1;
+      if(!b.lastMessage) return -1;
+
+      return new Date(
+        b.lastMessage.created_at
+      ).getTime() -
+      new Date(
+        a.lastMessage.created_at
+      ).getTime();
+
+    });
+
+
+
     setContacts(usersWithMessages);
 
   }
@@ -101,9 +124,11 @@ export default function ChatList() {
       "false"
     );
 
+
     localStorage.removeItem(
       "ferilineUser"
     );
+
 
     window.location.reload();
 
@@ -216,14 +241,38 @@ export default function ChatList() {
               </h3>
 
 
-              <p>
 
-                {user.lastMessage
-                  ? user.lastMessage.text
-                  : user.phone
-                }
+              <div className="last-message">
 
-              </p>
+
+                <p>
+
+                  {user.lastMessage
+                    ? user.lastMessage.text
+                    : "Start chatting"
+                  }
+
+                </p>
+
+
+
+                {user.lastMessage && (
+
+                  <span>
+
+                    {new Date(
+                      user.lastMessage.created_at
+                    ).toLocaleTimeString([],{
+                      hour:"2-digit",
+                      minute:"2-digit"
+                    })}
+
+                  </span>
+
+                )}
+
+
+              </div>
 
 
             </div>
