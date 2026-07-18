@@ -9,7 +9,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   const bottomRef = useRef<any>(null);
 
-
   const currentUser = JSON.parse(
     localStorage.getItem("ferilineUser") || "{}"
   );
@@ -22,12 +21,9 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
+  async function updateMyStatus(){
 
-  async function updateOnline(){
-
-    if(!currentUser.id){
-      return;
-    }
+    if(!currentUser.id) return;
 
 
     await supabase
@@ -35,36 +31,41 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       .upsert({
         user_id: currentUser.id,
         online:true,
-        last_seen:new Date()
+        last_active:new Date()
       });
 
   }
 
 
 
+  async function checkFriendStatus(){
 
-
-  async function checkOnline(){
-
-    if(!otherUser.id){
-      return;
-    }
+    if(!otherUser.id) return;
 
 
     const {data}=await supabase
       .from("user_status")
-      .select("*")
-      .eq(
-        "user_id",
-        otherUser.id
-      )
+      .select("last_active")
+      .eq("user_id", otherUser.id)
       .single();
 
 
 
-    setOnline(
-      data?.online || false
-    );
+    if(data?.last_active){
+
+      const last = new Date(data.last_active).getTime();
+
+      const now = new Date().getTime();
+
+      setOnline(
+        now - last < 60000
+      );
+
+    } else {
+
+      setOnline(false);
+
+    }
 
   }
 
@@ -96,6 +97,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
+
   useEffect(()=>{
 
     if(!currentUser.id || !otherUser.id){
@@ -103,16 +105,23 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     }
 
 
-    updateOnline();
-    checkOnline();
     loadHistory();
+
+
+    updateMyStatus();
+
+    checkFriendStatus();
 
 
 
     const timer=setInterval(()=>{
-      updateOnline();
-      checkOnline();
+
+      updateMyStatus();
+
+      checkFriendStatus();
+
     },10000);
+
 
 
 
@@ -135,15 +144,23 @@ export default function ChatRoom({ name, contact, onBack }: any) {
           if(
             (msg.sender_id===currentUser.id &&
              msg.receiver_id===otherUser.id)
-             ||
+            ||
             (msg.sender_id===otherUser.id &&
              msg.receiver_id===currentUser.id)
           ){
 
-            setMessages(old=>[
-              ...old,
-              msg
-            ]);
+            setMessages(old=>{
+
+              if(old.some(x=>x.id===msg.id)){
+                return old;
+              }
+
+              return [
+                ...old,
+                msg
+              ];
+
+            });
 
           }
 
@@ -169,12 +186,9 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
   async function sendMessage(){
 
-    if(!text.trim()){
-      return;
-    }
+    if(!text.trim()) return;
 
 
     const {data,error}=await supabase
@@ -243,7 +257,10 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
         <div className="chat-avatar">
-          {otherUser.name.charAt(0).toUpperCase()}
+          {otherUser.name
+            ? otherUser.name.charAt(0).toUpperCase()
+            : "F"
+          }
         </div>
 
 
@@ -264,7 +281,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
           </span>
 
-
         </div>
 
 
@@ -272,16 +288,11 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
         <div className="call-buttons">
 
-          <button>
-            📞
-          </button>
+          <button>📞</button>
 
-          <button>
-            📷
-          </button>
+          <button>📷</button>
 
         </div>
-
 
 
       </div>
@@ -298,8 +309,8 @@ export default function ChatRoom({ name, contact, onBack }: any) {
             key={msg.id}
             className={
               msg.sender_id===currentUser.id
-              ?"message mine"
-              :"message"
+              ? "message mine"
+              : "message"
             }
           >
 
@@ -320,11 +331,13 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
       <div className="message-input">
 
-
         <input
           value={text}
           placeholder="Message..."
           onChange={(e)=>setText(e.target.value)}
+          onKeyDown={(e)=>
+            e.key==="Enter" && sendMessage()
+          }
         />
 
 
@@ -334,7 +347,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
       </div>
-
 
 
     </div>
