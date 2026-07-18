@@ -27,7 +27,7 @@ export default function ChatList() {
 
 
 
-    const { data: contactData, error } = await supabase
+    const { data, error } = await supabase
       .from("contacts")
       .select("*")
       .or(
@@ -42,11 +42,11 @@ export default function ChatList() {
 
 
 
-    const friendIds = contactData.map((item:any)=>
+    const friendIds = data.map((item)=>(
       item.user_id === currentUser.id
       ? item.friend_id
       : item.user_id
-    );
+    ));
 
 
 
@@ -57,62 +57,16 @@ export default function ChatList() {
 
 
 
-    const { data: users } = await supabase
+    const { data:users } = await supabase
       .from("users")
       .select("id,name,phone")
-      .in("id", friendIds);
+      .in("id",friendIds);
 
 
 
-    const usersWithMessages = await Promise.all(
-      (users || []).map(async(user:any)=>{
-
-
-        const { data: lastMessage } = await supabase
-          .from("messages")
-          .select("*")
-          .or(
-            `and(sender_id.eq.${currentUser.id},receiver_id.eq.${user.id}),and(sender_id.eq.${user.id},receiver_id.eq.${currentUser.id})`
-          )
-          .order("created_at", {
-            ascending:false
-          })
-          .limit(1)
-          .single();
-
-
-
-        return {
-          ...user,
-          lastMessage: lastMessage || null
-        };
-
-
-      })
-    );
-
-
-
-    usersWithMessages.sort((a:any,b:any)=>{
-
-      if(!a.lastMessage) return 1;
-      if(!b.lastMessage) return -1;
-
-      return new Date(
-        b.lastMessage.created_at
-      ).getTime() -
-      new Date(
-        a.lastMessage.created_at
-      ).getTime();
-
-    });
-
-
-
-    setContacts(usersWithMessages);
+    setContacts(users || []);
 
   }
-
 
 
 
@@ -124,11 +78,9 @@ export default function ChatList() {
       "false"
     );
 
-
     localStorage.removeItem(
       "ferilineUser"
     );
-
 
     window.location.reload();
 
@@ -140,8 +92,7 @@ export default function ChatList() {
 
   if(selectedContact){
 
-    return (
-
+    return(
       <ChatRoom
         contact={selectedContact}
         name={selectedContact.name}
@@ -149,7 +100,6 @@ export default function ChatList() {
           setSelectedContact(null)
         }
       />
-
     );
 
   }
@@ -160,14 +110,11 @@ export default function ChatList() {
 
   if(addFriend){
 
-    return (
-
+    return(
       <AddFriend
-
         onBack={()=>
           setAddFriend(false)
         }
-
 
         onStartChat={(user)=>{
 
@@ -175,9 +122,7 @@ export default function ChatList() {
           setAddFriend(false);
 
         }}
-
       />
-
     );
 
   }
@@ -186,12 +131,12 @@ export default function ChatList() {
 
 
 
-  return (
+  return(
 
     <div className="chat-list">
 
 
-      <div className="chat-header">
+      <div className="chat-list-header">
 
         <h1>
           FeriLine
@@ -199,7 +144,9 @@ export default function ChatList() {
 
 
         <button
-          onClick={() => setAddFriend(true)}
+          onClick={()=>
+            setAddFriend(true)
+          }
         >
           + Friend
         </button>
@@ -217,17 +164,24 @@ export default function ChatList() {
 
 
           <div
+
             key={user.id}
+
             className="contact"
+
             onClick={()=>
               setSelectedContact(user)
             }
+
           >
 
 
             <div className="avatar">
 
-              {user.name.charAt(0).toUpperCase()}
+              {user.name
+                .charAt(0)
+                .toUpperCase()
+              }
 
             </div>
 
@@ -242,41 +196,12 @@ export default function ChatList() {
 
 
 
-              <div className="last-message">
-
-
-                <p>
-
-                  {user.lastMessage
-                    ? user.lastMessage.text
-                    : "Start chatting"
-                  }
-
-                </p>
-
-
-
-                {user.lastMessage && (
-
-                  <span>
-
-                    {new Date(
-                      user.lastMessage.created_at
-                    ).toLocaleTimeString([],{
-                      hour:"2-digit",
-                      minute:"2-digit"
-                    })}
-
-                  </span>
-
-                )}
-
-
-              </div>
+              <p>
+                Hi
+              </p>
 
 
             </div>
-
 
 
           </div>
@@ -291,7 +216,10 @@ export default function ChatList() {
 
 
 
-      <button onClick={logout}>
+      <button
+        className="logout-btn"
+        onClick={logout}
+      >
         Logout
       </button>
 
