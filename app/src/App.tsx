@@ -1,106 +1,66 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import "./styles.css";
 import Register from "./Register";
 import ChatList from "./ChatList";
-import { socket } from "./socket";
+import { supabase } from "./supabase";
 
 export default function App() {
 
-  const savedUser = localStorage.getItem("ferilineUser");
-  const loggedIn = localStorage.getItem("ferilineLoggedIn");
-
-
-  const [page, setPage] = useState(
-    savedUser && loggedIn === "true"
-      ? "chat"
-      : "home"
-  );
-
+  const [page, setPage] = useState("home");
 
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
 
+  async function login() {
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("phone", phone)
+      .eq("pin", pin)
+      .single();
 
 
-  function login() {
+    if (error || !data) {
 
-    const saved =
-      localStorage.getItem("ferilineUser");
-
-
-    if (!saved) {
-
-      alert("No account found");
+      alert("Wrong phone or PIN");
       return;
 
     }
 
 
-    const user =
-      JSON.parse(saved);
+    localStorage.setItem(
+      "ferilineUser",
+      JSON.stringify(data)
+    );
 
 
-
-    if (
-      phone === user.phone &&
-      pin === user.pin
-    ) {
-
-
-      localStorage.setItem(
-        "ferilineLoggedIn",
-        "true"
-      );
+    localStorage.setItem(
+      "ferilineLoggedIn",
+      "true"
+    );
 
 
-      socket.connect();
-
-
-      socket.emit(
-        "registerUser",
-        user
-      );
-
-
-      setPage("chat");
-
-
-    } else {
-
-
-      alert(
-        "Wrong phone or PIN"
-      );
-
-
-    }
+    setPage("chat");
 
   }
-
 
 
 
   if (page === "register") {
-
     return <Register />;
-
   }
-
 
 
   if (page === "chat") {
-
     return <ChatList />;
-
   }
-
 
 
 
   return (
 
     <div className="feriline-home">
-
 
       <div className="logo">
         F
@@ -120,9 +80,7 @@ export default function App() {
 
       <button
         className="primary-btn"
-        onClick={() =>
-          setPage("register")
-        }
+        onClick={() => setPage("register")}
       >
         Create account
       </button>
@@ -138,9 +96,7 @@ export default function App() {
       <input
         placeholder="Phone number"
         value={phone}
-        onChange={(e) =>
-          setPhone(e.target.value)
-        }
+        onChange={(e) => setPhone(e.target.value)}
       />
 
 
@@ -149,9 +105,7 @@ export default function App() {
         type="password"
         placeholder="PIN"
         value={pin}
-        onChange={(e) =>
-          setPin(e.target.value)
-        }
+        onChange={(e) => setPin(e.target.value)}
       />
 
 
@@ -167,5 +121,4 @@ export default function App() {
     </div>
 
   );
-
 }
