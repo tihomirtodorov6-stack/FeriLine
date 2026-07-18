@@ -5,6 +5,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
+  const [debug, setDebug] = useState("");
 
   const bottomRef = useRef<any>(null);
 
@@ -20,7 +21,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   async function loadHistory() {
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .or(
@@ -31,21 +32,26 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       });
 
 
+    if(error){
+      setDebug(error.message);
+      return;
+    }
+
+
     setMessages(data || []);
 
   }
 
 
 
-  useEffect(() => {
+  useEffect(()=>{
 
-    if (!currentUser.id || !otherUser.id) {
+    if(!currentUser.id || !otherUser.id){
       return;
     }
 
 
     loadHistory();
-
 
 
     const channel = supabase
@@ -55,26 +61,26 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
-          schema: "public",
-          table: "messages"
+          event:"INSERT",
+          schema:"public",
+          table:"messages"
         },
-        (payload) => {
+        (payload)=>{
 
-          const msg: any = payload.new;
+          const msg:any = payload.new;
 
 
-          if (
+          if(
             (msg.sender_id === currentUser.id &&
              msg.receiver_id === otherUser.id)
-            ||
+             ||
             (msg.sender_id === otherUser.id &&
              msg.receiver_id === currentUser.id)
-          ) {
+          ){
 
-            setMessages(old => {
+            setMessages(old=>{
 
-              if(old.find(x => x.id === msg.id)){
+              if(old.find(x=>x.id===msg.id)){
                 return old;
               }
 
@@ -93,41 +99,31 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-    return () => {
+    return ()=>{
       supabase.removeChannel(channel);
     };
 
 
-  }, [currentUser.id, otherUser.id]);
+  },[currentUser.id, otherUser.id]);
 
 
 
 
 
-  async function sendMessage() {
-
+  async function sendMessage(){
 
     if(!text.trim()){
       return;
     }
 
 
-    if(!currentUser.id || !otherUser.id){
-      return;
-    }
-
-
-    const messageText = text.trim();
-
-
-
-    const { data, error } = await supabase
+    const {data,error}=await supabase
       .from("messages")
       .insert([
         {
-          sender_id: currentUser.id,
-          receiver_id: otherUser.id,
-          text: messageText
+          sender_id:currentUser.id,
+          receiver_id:otherUser.id,
+          text:text.trim()
         }
       ])
       .select()
@@ -136,36 +132,28 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     if(error){
-      console.log(error);
-      return;
-    }
 
+      setDebug(error.message);
+      return;
+
+    }
 
 
     setText("");
 
 
-
-    setMessages(old => {
-
-      if(old.find(x => x.id === data.id)){
-        return old;
-      }
-
-      return [
-        ...old,
-        data
-      ];
-
-    });
-
+    setMessages(old=>[
+      ...old,
+      data
+    ]);
 
   }
 
 
 
 
-  useEffect(() => {
+
+  useEffect(()=>{
 
     bottomRef.current?.scrollIntoView({
       behavior:"smooth"
@@ -184,12 +172,25 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
       <div className="chat-header">
 
+
         <button
           className="back-btn"
           onClick={onBack}
         >
-          ← Back
+          ←
         </button>
+
+
+
+        <div className="chat-avatar">
+
+          {otherUser.name
+            ? otherUser.name.charAt(0).toUpperCase()
+            : "F"
+          }
+
+        </div>
+
 
 
         <h2>
@@ -201,15 +202,17 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
+
+
       <div className="messages">
 
 
-        {messages.map(msg => (
+        {messages.map(msg=>(
 
           <div
             key={msg.id}
             className={
-              msg.sender_id === currentUser.id
+              msg.sender_id===currentUser.id
               ? "message mine"
               : "message"
             }
@@ -222,6 +225,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         ))}
 
 
+
         <div ref={bottomRef}/>
 
 
@@ -229,33 +233,29 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
+
+
       <div className="message-input">
 
 
         <input
-
           value={text}
-
           placeholder="Message..."
-
-          onChange={(e)=>
-            setText(e.target.value)
-          }
-
+          onChange={(e)=>setText(e.target.value)}
           onKeyDown={(e)=>
             e.key==="Enter" && sendMessage()
           }
-
         />
 
 
-        <button onClick={sendMessage}>
+        <button
+          onClick={sendMessage}
+        >
           Send
         </button>
 
 
       </div>
-
 
 
     </div>
