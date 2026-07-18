@@ -5,7 +5,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
-  const [debug, setDebug] = useState("");
 
   const bottomRef = useRef<any>(null);
 
@@ -13,34 +12,35 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     localStorage.getItem("ferilineUser") || "{}"
   );
 
+
   const otherUser = contact || {
-    id: null,
-    name: name
+    id:null,
+    name:name
   };
 
 
-  async function loadHistory() {
 
-    const { data, error } = await supabase
+  async function loadHistory(){
+
+    const { data } = await supabase
       .from("messages")
       .select("*")
       .or(
         `and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUser.id}),and(sender_id.eq.${otherUser.id},receiver_id.eq.${currentUser.id})`
       )
-      .order("created_at", {
-        ascending: true
-      });
-
-
-    if(error){
-      setDebug(error.message);
-      return;
-    }
+      .order(
+        "created_at",
+        {
+          ascending:true
+        }
+      );
 
 
     setMessages(data || []);
 
   }
+
+
 
 
 
@@ -52,6 +52,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     loadHistory();
+
 
 
     const channel = supabase
@@ -71,25 +72,17 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
           if(
-            (msg.sender_id === currentUser.id &&
-             msg.receiver_id === otherUser.id)
+            (msg.sender_id===currentUser.id &&
+             msg.receiver_id===otherUser.id)
              ||
-            (msg.sender_id === otherUser.id &&
-             msg.receiver_id === currentUser.id)
+            (msg.sender_id===otherUser.id &&
+             msg.receiver_id===currentUser.id)
           ){
 
-            setMessages(old=>{
-
-              if(old.find(x=>x.id===msg.id)){
-                return old;
-              }
-
-              return [
-                ...old,
-                msg
-              ];
-
-            });
+            setMessages(old=>[
+              ...old,
+              msg
+            ]);
 
           }
 
@@ -104,7 +97,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     };
 
 
-  },[currentUser.id, otherUser.id]);
+  },[]);
 
 
 
@@ -132,10 +125,8 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
     if(error){
-
-      setDebug(error.message);
+      console.log(error);
       return;
-
     }
 
 
@@ -183,12 +174,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
         <div className="chat-avatar">
-
-          {otherUser.name
-            ? otherUser.name.charAt(0).toUpperCase()
-            : "F"
-          }
-
+          {otherUser.name.charAt(0).toUpperCase()}
         </div>
 
 
@@ -209,6 +195,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
         {messages.map(msg=>(
 
+
           <div
             key={msg.id}
             className={
@@ -218,9 +205,26 @@ export default function ChatRoom({ name, contact, onBack }: any) {
             }
           >
 
-            {msg.text}
+
+            <div>
+              {msg.text}
+            </div>
+
+
+            <span className="message-time">
+
+              {new Date(
+                msg.created_at
+              ).toLocaleTimeString([],{
+                hour:"2-digit",
+                minute:"2-digit"
+              })}
+
+            </span>
+
 
           </div>
+
 
         ))}
 
