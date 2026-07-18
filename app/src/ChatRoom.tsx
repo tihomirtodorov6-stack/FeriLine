@@ -37,7 +37,7 @@ export default function ChatRoom({
 
 
     const channel = supabase
-      .channel("messages-room")
+      .channel("messages-realtime")
       .on(
         "postgres_changes",
         {
@@ -47,21 +47,33 @@ export default function ChatRoom({
         },
         (payload) => {
 
-          const m: any = payload.new;
+          const newMessage: any = payload.new;
 
 
           if (
-            (m.sender_id === currentUser.id &&
-             m.receiver_id === otherUser.id)
+            (newMessage.sender_id === currentUser.id &&
+             newMessage.receiver_id === otherUser.id)
             ||
-            (m.sender_id === otherUser.id &&
-             m.receiver_id === currentUser.id)
+            (newMessage.sender_id === otherUser.id &&
+             newMessage.receiver_id === currentUser.id)
           ) {
 
-            setMessages((prev) => [
-              ...prev,
-              m
-            ]);
+            setMessages((old) => {
+
+              const exists = old.find(
+                (m) => m.id === newMessage.id
+              );
+
+              if (exists) {
+                return old;
+              }
+
+              return [
+                ...old,
+                newMessage
+              ];
+
+            });
 
           }
 
@@ -94,8 +106,7 @@ export default function ChatRoom({
 
   async function loadHistory() {
 
-
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .or(
@@ -109,7 +120,11 @@ export default function ChatRoom({
       );
 
 
-    setMessages(data || []);
+    if (!error) {
+
+      setMessages(data || []);
+
+    }
 
   }
 
@@ -117,24 +132,42 @@ export default function ChatRoom({
 
   async function sendMessage() {
 
-
     if (!text.trim()) {
       return;
     }
 
 
-    await supabase
+    const newText = text.trim();
+
+    setText("");
+
+
+    const { data, error } = await supabase
       .from("messages")
       .insert([
         {
           sender_id: currentUser.id,
           receiver_id: otherUser.id,
-          text: text.trim()
+          text: newText
         }
-      ]);
+      ])
+      .select()
+      .single();
 
 
-    setText("");
+
+    if (error) {
+
+      console.log(error);
+      return;
+
+    }
+
+
+    setMessages((old) => [
+      ...old,
+      data
+    ]);
 
   }
 
@@ -142,14 +175,13 @@ export default function ChatRoom({
 
   return (
 
-    <div
-      className="chat-room"
-    >
+    <div className="chat-room">
 
 
       <div className="chat-header">
 
         <button
+          className="back-btn"
           onClick={onBack}
         >
           ← Back
@@ -186,7 +218,7 @@ export default function ChatRoom({
         ))}
 
 
-        <div ref={bottomRef}/>
+        <div ref={bottomRef} />
 
 
       </div>
@@ -194,7 +226,6 @@ export default function ChatRoom({
 
 
       <div className="message-input">
-
 
         <input
           placeholder="Message..."
