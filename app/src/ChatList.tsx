@@ -1,15 +1,62 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ChatRoom from "./ChatRoom";
 import AddFriend from "./AddFriend";
+import { supabase } from "./supabase";
 
 export default function ChatList() {
 
-  const [selectedContact, setSelectedContact] = useState<string | null>(null);
-
+  const [selectedContact, setSelectedContact] = useState<any>(null);
   const [addFriend, setAddFriend] = useState(false);
+  const [contacts, setContacts] = useState<any[]>([]);
 
 
-  const contacts: any[] = [];
+  useEffect(() => {
+
+    loadContacts();
+
+  }, []);
+
+
+
+  async function loadContacts() {
+
+    const savedUser = localStorage.getItem("ferilineUser");
+
+    if (!savedUser) {
+      return;
+    }
+
+
+    const currentUser = JSON.parse(savedUser);
+
+
+    const { data, error } = await supabase
+      .from("contacts")
+      .select(`
+        id,
+        friend_id,
+        users:friend_id (
+          id,
+          name,
+          phone
+        )
+      `)
+      .eq("user_id", currentUser.id);
+
+
+
+    if (error) {
+
+      console.log(error);
+      return;
+
+    }
+
+
+    setContacts(data || []);
+
+  }
+
 
 
   function logout() {
@@ -19,17 +66,11 @@ export default function ChatList() {
       "false"
     );
 
+    localStorage.removeItem(
+      "ferilineUser"
+    );
+
     window.location.reload();
-
-  }
-
-
-
-  function startChat(user: any) {
-
-    setSelectedContact(user.name);
-
-    setAddFriend(false);
 
   }
 
@@ -39,7 +80,7 @@ export default function ChatList() {
 
     return (
       <ChatRoom
-        name={selectedContact}
+        name={selectedContact.name}
         onBack={() =>
           setSelectedContact(null)
         }
@@ -57,8 +98,12 @@ export default function ChatList() {
         onBack={() =>
           setAddFriend(false)
         }
+        onStartChat={(user) => {
 
-        onStartChat={startChat}
+          setSelectedContact(user);
+          setAddFriend(false);
+
+        }}
       />
     );
 
@@ -80,11 +125,42 @@ export default function ChatList() {
       </h2>
 
 
+
       {contacts.length === 0 && (
+
         <p>
           No chats yet
         </p>
+
       )}
+
+
+
+      {contacts.map((contact) => (
+
+        <div
+          key={contact.id}
+          onClick={() =>
+            setSelectedContact(contact.users)
+          }
+          style={{
+            cursor: "pointer",
+            padding: "15px"
+          }}
+        >
+
+          <h3>
+            👤 {contact.users?.name}
+          </h3>
+
+          <p>
+            {contact.users?.phone}
+          </p>
+
+        </div>
+
+      ))}
+
 
 
       <button
@@ -95,6 +171,7 @@ export default function ChatList() {
       >
         + Add Friend
       </button>
+
 
 
       <button
