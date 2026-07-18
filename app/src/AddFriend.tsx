@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { socket } from "./socket";
+import { supabase } from "./supabase";
 
 export default function AddFriend({
   onBack
@@ -9,55 +9,40 @@ export default function AddFriend({
 
   const [phone, setPhone] = useState("");
   const [user, setUser] = useState<any>(null);
+  const [message, setMessage] = useState("");
 
+  async function searchUser() {
 
-  function searchUser() {
+    setUser(null);
+    setMessage("");
 
     if (phone.trim() === "") {
+      setMessage("Въведи телефон.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, name, phone")
+      .eq("phone", phone.trim())
+      .single();
+
+
+    if (error || !data) {
+      setMessage("Потребителят не е намерен.");
       return;
     }
 
 
-    socket.emit(
-      "findUser",
-      phone
-    );
-
-
-    socket.once(
-      "userFound",
-      (data) => {
-
-        setUser(data);
-
-      }
-    );
-
-
-    socket.once(
-      "userNotFound",
-      () => {
-
-        setUser(null);
-
-        alert(
-          "User not found"
-        );
-
-      }
-    );
-
+    setUser(data);
   }
-
 
 
   return (
     <div className="chat-list">
 
-      <button
-        onClick={onBack}
-      >
-        ← Back
+      <button onClick={onBack}>
+        ← Назад
       </button>
 
 
@@ -67,7 +52,7 @@ export default function AddFriend({
 
 
       <input
-        placeholder="Phone number"
+        placeholder="Телефонен номер"
         value={phone}
         onChange={(e) =>
           setPhone(e.target.value)
@@ -79,9 +64,11 @@ export default function AddFriend({
         className="primary-btn"
         onClick={searchUser}
       >
-        Search
+        Търси
       </button>
 
+
+      <p>{message}</p>
 
 
       {user && (
@@ -89,7 +76,7 @@ export default function AddFriend({
         <div>
 
           <h2>
-            {user.name}
+            👤 {user.name}
           </h2>
 
           <p>
@@ -107,7 +94,6 @@ export default function AddFriend({
         </div>
 
       )}
-
 
     </div>
   );
