@@ -211,4 +211,51 @@
   font-size: 20px;
   font-weight: bold;
   border-radius: 16px;
+}.user-title {
+  display: flex;
+  flex-direction: column;
+}
+
+
+.user-title h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+
+.online-status {
+  font-size: 14px;
+  color: green;
+}
+
+
+.call-buttons {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+}
+
+
+.call-buttons button {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  font-size: 30px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.chat-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin-left: 5px;
 }
