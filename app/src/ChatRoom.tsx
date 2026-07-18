@@ -5,8 +5,10 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
+  const [online, setOnline] = useState(false);
 
   const bottomRef = useRef<any>(null);
+
 
   const currentUser = JSON.parse(
     localStorage.getItem("ferilineUser") || "{}"
@@ -14,15 +16,65 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
   const otherUser = contact || {
-    id: null,
-    name: name
+    id:null,
+    name:name
   };
 
 
 
-  async function loadHistory() {
 
-    const { data } = await supabase
+  async function updateOnline(){
+
+    if(!currentUser.id){
+      return;
+    }
+
+
+    await supabase
+      .from("user_status")
+      .upsert({
+        user_id: currentUser.id,
+        online:true,
+        last_seen:new Date()
+      });
+
+  }
+
+
+
+
+
+  async function checkOnline(){
+
+    if(!otherUser.id){
+      return;
+    }
+
+
+    const {data}=await supabase
+      .from("user_status")
+      .select("*")
+      .eq(
+        "user_id",
+        otherUser.id
+      )
+      .single();
+
+
+
+    setOnline(
+      data?.online || false
+    );
+
+  }
+
+
+
+
+
+  async function loadHistory(){
+
+    const {data}=await supabase
       .from("messages")
       .select("*")
       .or(
@@ -31,7 +83,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       .order(
         "created_at",
         {
-          ascending: true
+          ascending:true
         }
       );
 
@@ -44,17 +96,27 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-  useEffect(() => {
+  useEffect(()=>{
 
     if(!currentUser.id || !otherUser.id){
       return;
     }
 
 
+    updateOnline();
+    checkOnline();
     loadHistory();
 
 
-    const channel = supabase
+
+    const timer=setInterval(()=>{
+      updateOnline();
+      checkOnline();
+    },10000);
+
+
+
+    const channel=supabase
       .channel(
         "chat-" + currentUser.id + "-" + otherUser.id
       )
@@ -67,29 +129,21 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         },
         (payload)=>{
 
-          const msg:any = payload.new;
+          const msg:any=payload.new;
 
 
           if(
-            (msg.sender_id === currentUser.id &&
-             msg.receiver_id === otherUser.id)
-            ||
-            (msg.sender_id === otherUser.id &&
-             msg.receiver_id === currentUser.id)
+            (msg.sender_id===currentUser.id &&
+             msg.receiver_id===otherUser.id)
+             ||
+            (msg.sender_id===otherUser.id &&
+             msg.receiver_id===currentUser.id)
           ){
 
-            setMessages(old=>{
-
-              if(old.some(x=>x.id===msg.id)){
-                return old;
-              }
-
-              return [
-                ...old,
-                msg
-              ];
-
-            });
+            setMessages(old=>[
+              ...old,
+              msg
+            ]);
 
           }
 
@@ -101,12 +155,16 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
     return ()=>{
 
+      clearInterval(timer);
+
       supabase.removeChannel(channel);
 
     };
 
 
   },[]);
+
+
 
 
 
@@ -142,20 +200,13 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     setText("");
 
 
-    setMessages(old=>{
-
-      if(old.some(x=>x.id===data.id)){
-        return old;
-      }
-
-      return [
-        ...old,
-        data
-      ];
-
-    });
+    setMessages(old=>[
+      ...old,
+      data
+    ]);
 
   }
+
 
 
 
@@ -168,6 +219,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     });
 
   },[messages]);
+
 
 
 
@@ -191,10 +243,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
         <div className="chat-avatar">
-          {otherUser.name
-            ? otherUser.name.charAt(0).toUpperCase()
-            : "F"
-          }
+          {otherUser.name.charAt(0).toUpperCase()}
         </div>
 
 
@@ -205,9 +254,16 @@ export default function ChatRoom({ name, contact, onBack }: any) {
             {otherUser.name}
           </h2>
 
+
           <span className="online-status">
-            ● Online
+
+            {online
+              ? "🟢 Online"
+              : "⚪ Offline"
+            }
+
           </span>
+
 
         </div>
 
@@ -220,12 +276,12 @@ export default function ChatRoom({ name, contact, onBack }: any) {
             📞
           </button>
 
-
           <button>
             📷
           </button>
 
         </div>
+
 
 
       </div>
@@ -236,34 +292,18 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
       <div className="messages">
 
-
         {messages.map(msg=>(
 
           <div
             key={msg.id}
             className={
               msg.sender_id===currentUser.id
-              ? "message mine"
-              : "message"
+              ?"message mine"
+              :"message"
             }
           >
 
-            <div>
-              {msg.text}
-            </div>
-
-
-            <span className="message-time">
-
-              {new Date(
-                msg.created_at
-              ).toLocaleTimeString([],{
-                hour:"2-digit",
-                minute:"2-digit"
-              })}
-
-            </span>
-
+            {msg.text}
 
           </div>
 
@@ -271,7 +311,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
         <div ref={bottomRef}/>
-
 
       </div>
 
@@ -286,9 +325,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
           value={text}
           placeholder="Message..."
           onChange={(e)=>setText(e.target.value)}
-          onKeyDown={(e)=>
-            e.key==="Enter" && sendMessage()
-          }
         />
 
 
@@ -298,6 +334,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
       </div>
+
 
 
     </div>
