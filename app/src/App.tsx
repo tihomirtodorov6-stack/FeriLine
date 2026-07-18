@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "./styles.css";
 import Register from "./Register";
 import ChatList from "./ChatList";
+import { socket } from "./socket";
 
 export default function App() {
   const savedUser = localStorage.getItem("ferilineUser");
@@ -32,6 +33,12 @@ export default function App() {
         "ferilineLoggedIn",
         "true"
       );
+
+      socket.connect();
+
+      const userId = user.firstName + "_" + user.lastName;
+
+      socket.emit("register", userId);
 
       setPage("chat");
     } else {
