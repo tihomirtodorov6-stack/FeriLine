@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "./supabase";
 
-export default function Register() {
+export default function Register({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
@@ -10,19 +10,8 @@ export default function Register() {
   async function registerUser() {
     setMessage("");
 
-    // Проверка
-    if (!name.trim()) {
-      setMessage("Въведете име.");
-      return;
-    }
-
-    if (!phone.trim()) {
-      setMessage("Въведете телефон.");
-      return;
-    }
-
-    if (pin.length !== 4) {
-      setMessage("PIN трябва да бъде точно 4 цифри.");
+    if (!name.trim() || !phone.trim() || pin.length !== 4) {
+      setMessage("Попълнете всички полета. PIN трябва да е 4 цифри.");
       return;
     }
 
@@ -37,14 +26,7 @@ export default function Register() {
       ]);
 
     if (error) {
-      if (
-        error.message.toLowerCase().includes("duplicate") ||
-        error.message.toLowerCase().includes("unique")
-      ) {
-        setMessage("❌ Този телефон вече е регистриран.");
-      } else {
-        setMessage("❌ " + error.message);
-      }
+      setMessage("Грешка: " + error.message);
       return;
     }
 
@@ -56,26 +38,23 @@ export default function Register() {
   }
 
   return (
-    <div
-      style={{
-        maxWidth: 350,
-        margin: "50px auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
-      <h2 style={{ textAlign: "center" }}>FeriLine регистрация</h2>
+    <div className="feriline-home">
+
+      <div className="logo">
+        F
+      </div>
+
+      <h1>
+        FeriLine регистрация
+      </h1>
 
       <input
-        type="text"
         placeholder="Име"
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
 
       <input
-        type="text"
         placeholder="Телефон"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
@@ -89,15 +68,23 @@ export default function Register() {
         maxLength={4}
       />
 
-      <button onClick={registerUser}>
+      <button
+        className="primary-btn"
+        onClick={registerUser}
+      >
         Регистрация
       </button>
 
-      {message && (
-        <p style={{ textAlign: "center" }}>
-          {message}
-        </p>
-      )}
+      <button
+        onClick={onBack}
+      >
+        ⬅ Назад към Login
+      </button>
+
+      <p>
+        {message}
+      </p>
+
     </div>
   );
 }
