@@ -1,52 +1,52 @@
 import React, { useState } from "react";
-import ChatList from "./ChatList";
+import { socket } from "./socket";
 
 export default function Register() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [pin, setPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
-  const [registered, setRegistered] = useState(false);
 
-  function createAccount() {
-    if (!firstName || !lastName || !birthDate || !pin) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pin, setPin] = useState("");
+
+
+  function register() {
+
+    if (
+      name.trim() === "" ||
+      phone.trim() === "" ||
+      pin.trim() === ""
+    ) {
       alert("Fill all fields");
       return;
     }
 
-    if (pin !== confirmPin) {
-      alert("PIN codes do not match");
-      return;
-    }
-
-    const feriId =
-      "FL-" + Math.floor(10000000 + Math.random() * 90000000);
 
     const user = {
-      firstName,
-      lastName,
-      birthDate,
-      pin,
-      feriId
+      name,
+      phone,
+      pin
     };
+
 
     localStorage.setItem(
       "ferilineUser",
       JSON.stringify(user)
     );
 
-    localStorage.setItem(
-      "ferilineLoggedIn",
-      "true"
+
+    socket.emit(
+      "registerUser",
+      user
     );
 
-    setRegistered(true);
+
+    alert("Account created");
+
+
+    window.location.reload();
+
   }
 
-  if (registered) {
-    return <ChatList />;
-  }
+
 
   return (
     <div className="feriline-home">
@@ -55,46 +55,47 @@ export default function Register() {
         F
       </div>
 
-      <h1>Create account</h1>
+
+      <h1>
+        Create FeriLine account
+      </h1>
+
 
       <input
-        placeholder="First name"
-        value={firstName}
-        onChange={(e) => setFirstName(e.target.value)}
+        placeholder="Name"
+        value={name}
+        onChange={(e) =>
+          setName(e.target.value)
+        }
       />
 
-      <input
-        placeholder="Last name"
-        value={lastName}
-        onChange={(e) => setLastName(e.target.value)}
-      />
 
       <input
-        placeholder="Birth date DD/MM/YYYY"
-        value={birthDate}
-        onChange={(e) => setBirthDate(e.target.value)}
+        placeholder="Phone number"
+        value={phone}
+        onChange={(e) =>
+          setPhone(e.target.value)
+        }
       />
+
 
       <input
         type="password"
-        placeholder="Create PIN"
+        placeholder="PIN"
         value={pin}
-        onChange={(e) => setPin(e.target.value)}
+        onChange={(e) =>
+          setPin(e.target.value)
+        }
       />
 
-      <input
-        type="password"
-        placeholder="Confirm PIN"
-        value={confirmPin}
-        onChange={(e) => setConfirmPin(e.target.value)}
-      />
 
       <button
         className="primary-btn"
-        onClick={createAccount}
+        onClick={register}
       >
-        Register
+        Create account
       </button>
+
 
     </div>
   );
