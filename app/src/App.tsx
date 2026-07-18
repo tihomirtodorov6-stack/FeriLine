@@ -11,6 +11,7 @@ export default function App() {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
 
+
   async function login() {
 
     const { data, error } = await supabase
@@ -22,10 +23,8 @@ export default function App() {
 
 
     if (error || !data) {
-
       alert("Wrong phone or PIN");
       return;
-
     }
 
 
@@ -48,12 +47,23 @@ export default function App() {
 
 
   if (page === "register") {
-    return <Register />;
+
+    return (
+      <Register
+        onBack={() => setPage("home")}
+      />
+    );
+
   }
 
 
+
   if (page === "chat") {
-    return <ChatList />;
+
+    return (
+      <ChatList />
+    );
+
   }
 
 
