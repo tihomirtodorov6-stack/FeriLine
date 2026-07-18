@@ -27,10 +27,8 @@ export default function AddFriend({
 
 
     if (error || !data) {
-
       setMessage("Потребителят не е намерен.");
       return;
-
     }
 
 
@@ -40,10 +38,48 @@ export default function AddFriend({
 
 
 
+  async function addFriend() {
+
+    const savedUser = localStorage.getItem("ferilineUser");
+
+    if (!savedUser || !user) {
+      return;
+    }
+
+
+    const currentUser = JSON.parse(savedUser);
+
+
+    const { error } = await supabase
+      .from("contacts")
+      .insert([
+        {
+          user_id: currentUser.id,
+          friend_id: user.id
+        }
+      ]);
+
+
+    if (error) {
+
+      setMessage("Грешка: " + error.message);
+      return;
+
+    }
+
+
+    setMessage("✅ Добавен приятел");
+
+
+    onStartChat(user);
+
+  }
+
+
+
   return (
 
     <div className="chat-list">
-
 
       <button onClick={onBack}>
         ← Назад
@@ -94,9 +130,7 @@ export default function AddFriend({
 
           <button
             className="primary-btn"
-            onClick={() =>
-              onStartChat(user)
-            }
+            onClick={addFriend}
           >
             Start Chat
           </button>
