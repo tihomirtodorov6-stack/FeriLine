@@ -6,7 +6,11 @@ import { supabase } from "./supabase";
 
 export default function App() {
 
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(
+    localStorage.getItem("ferilineLoggedIn") === "true"
+      ? "chat"
+      : "home"
+  );
 
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
@@ -23,8 +27,10 @@ export default function App() {
 
 
     if (error || !data) {
+
       alert("Wrong phone or PIN");
       return;
+
     }
 
 
