@@ -12,7 +12,6 @@ export default function ChatList() {
   const contacts: any[] = [];
 
 
-
   function logout() {
 
     localStorage.setItem(
@@ -21,6 +20,16 @@ export default function ChatList() {
     );
 
     window.location.reload();
+
+  }
+
+
+
+  function startChat(user: any) {
+
+    setSelectedContact(user.name);
+
+    setAddFriend(false);
 
   }
 
@@ -48,6 +57,8 @@ export default function ChatList() {
         onBack={() =>
           setAddFriend(false)
         }
+
+        onStartChat={startChat}
       />
     );
 
@@ -55,11 +66,9 @@ export default function ChatList() {
 
 
 
-
   return (
 
     <div className="chat-list">
-
 
       <h1>
         FeriLine
@@ -71,47 +80,11 @@ export default function ChatList() {
       </h2>
 
 
-
       {contacts.length === 0 && (
-
         <p>
           No chats yet
         </p>
-
       )}
-
-
-
-      {contacts.map((contact) => (
-
-        <div
-          key={contact.id}
-          onClick={() =>
-            setSelectedContact(contact.name)
-          }
-
-          style={{
-            cursor: "pointer",
-            padding: "15px"
-          }}
-        >
-
-          <h3>
-            👤 {contact.name}
-          </h3>
-
-
-          <p>
-            {contact.lastMessage}
-          </p>
-
-
-        </div>
-
-      ))}
-
-
-
 
 
       <button
@@ -124,15 +97,12 @@ export default function ChatList() {
       </button>
 
 
-
-
       <button
         className="primary-btn"
         onClick={logout}
       >
         Logout
       </button>
-
 
 
     </div>
