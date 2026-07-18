@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { socket } from "./socket";
 
 export default function ChatRoom({
   name,
@@ -18,13 +19,51 @@ export default function ChatRoom({
   ]);
 
 
+  useEffect(() => {
+
+    socket.on("message", (data) => {
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: data.text,
+          mine: false
+        }
+      ]);
+
+    });
+
+
+    return () => {
+      socket.off("message");
+    };
+
+  }, []);
+
+
+
   function sendMessage() {
 
     if (message.trim() === "") return;
 
 
-    setMessages([
-      ...messages,
+    const currentUser =
+      localStorage.getItem("ferilineUser");
+
+
+    socket.emit("message", {
+
+      sender: currentUser,
+
+      receiver: name,
+
+      text: message
+
+    });
+
+
+    setMessages((prev) => [
+      ...prev,
       {
         text: message,
         mine: true
@@ -33,12 +72,13 @@ export default function ChatRoom({
 
 
     setMessage("");
+
   }
+
 
 
   return (
     <div className="chat-room">
-
 
       <div className="chat-header">
 
@@ -49,13 +89,11 @@ export default function ChatRoom({
           ← Back
         </button>
 
-
         <h2>
           {name}
         </h2>
 
       </div>
-
 
 
       <div className="messages">
@@ -78,25 +116,16 @@ export default function ChatRoom({
       </div>
 
 
-
-
       <div className="message-input">
 
-
         <input
-
           type="text"
-
           placeholder="Message..."
-
           value={message}
-
           onChange={(e) =>
             setMessage(e.target.value)
           }
-
         />
-
 
 
         <button
@@ -105,9 +134,7 @@ export default function ChatRoom({
           Send
         </button>
 
-
       </div>
-
 
     </div>
   );
