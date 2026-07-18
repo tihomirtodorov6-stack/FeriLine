@@ -2,113 +2,312 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase";
 
 export default function ChatRoom({ name, contact, onBack }: any) {
+
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [debug, setDebug] = useState("");
+
   const bottomRef = useRef<any>(null);
 
-  const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
+  const currentUser = JSON.parse(
+    localStorage.getItem("ferilineUser") || "{}"
+  );
 
-  // Държа otherUser в state за да можем да го оправим
-  const [otherUser, setOtherUser] = useState(contact || { id: null, name: name });
+  const otherUser = contact || {
+    id: null,
+    name: name
+  };
 
-  useEffect(() => {
-    // Ако нямаме ID, опитай да го намериш по име от базата
-    async function findOtherId() {
-      if (!otherUser.id && otherUser.name) {
-        setDebug("Търся ID за име: " + otherUser.name);
-        const { data, error } = await supabase
-         .from("users") // или "profiles" - как ти се казва таблицата с потребители?
-         .select("id, name")
-         .eq("name", otherUser.name)
-         .single();
-
-        if (data) {
-          setDebug("Намерих ID: " + data.id);
-          setOtherUser(data);
-        } else {
-          setDebug("Не намерих потребител с име " + otherUser.name + " Грешка: " + error?.message);
-        }
-      }
-    }
-    findOtherId();
-  }, [otherUser.name]);
-
-  useEffect(() => {
-    if (!currentUser.id ||!otherUser.id) {
-      if (otherUser.id === null) return; // чакай да се зареди
-      setDebug(`Липсва ID! Моят: ${currentUser.id} Другия: ${otherUser.id}`);
-      return;
-    }
-    setDebug(`Зареден чат между ${currentUser.id} и ${otherUser.id}`);
-    loadHistory();
-    const channel = supabase
-    .channel(`messages-${currentUser.id}-${otherUser.id}`)
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
-        (payload) => {
-          const newMessage: any = payload.new;
-          if (
-            (newMessage.sender_id === currentUser.id && newMessage.receiver_id === otherUser.id) ||
-            (newMessage.sender_id === otherUser.id && newMessage.receiver_id === currentUser.id)
-          ) {
-            setMessages((old) => {
-              if (old.some((m) => m.id === newMessage.id)) return old;
-              return [...old, newMessage];
-            });
-          }
-        }
-      )
-    .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [currentUser.id, otherUser.id]);
 
   async function loadHistory() {
-    const { data } = await supabase
-    .from("messages").select("*")
-    .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUser.id}),and(sender_id.eq.${otherUser.id},receiver_id.eq.${currentUser.id})`)
-    .order("created_at", { ascending: true });
-    setMessages(data || []);
-  }
 
-  async function sendMessage() {
-    if (!text.trim()) return;
-    if (!otherUser.id) {
-      setDebug("Не мога да пратя - няма ID на другия!");
-      return;
-    }
-    const { data, error } = await supabase.from("messages").insert([{
-      sender_id: currentUser.id,
-      receiver_id: otherUser.id,
-      text: text.trim()
-    }]).select().single();
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .or(
+        `and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUser.id}),and(sender_id.eq.${otherUser.id},receiver_id.eq.${currentUser.id})`
+      )
+      .order("created_at", {
+        ascending: true
+      });
+
 
     if (error) {
-      setDebug("ГРЕШКА при пращане: " + error.message);
+      setDebug(error.message);
       return;
     }
-    setText("");
-    setMessages((old) => [...old, data]);
+
+
+    setMessages(data || []);
+
   }
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+
+  useEffect(() => {
+
+    if (!currentUser.id || !otherUser.id) {
+
+      setDebug(
+        "Липсва ID. Аз: " +
+        currentUser.id +
+        " Друг: " +
+        otherUser.id
+      );
+
+      return;
+    }
+
+
+    setDebug(
+      "Чат: " +
+      currentUser.id +
+      " -> " +
+      otherUser.id
+    );
+
+
+    loadHistory();
+
+
+
+    const channel = supabase
+      .channel(
+        "chat-" + currentUser.id + "-" + otherUser.id
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages"
+        },
+        (payload) => {
+
+          const msg: any = payload.new;
+
+
+          if (
+            (msg.sender_id === currentUser.id &&
+             msg.receiver_id === otherUser.id)
+            ||
+            (msg.sender_id === otherUser.id &&
+             msg.receiver_id === currentUser.id)
+          ) {
+
+            setMessages(old => {
+
+              if(old.find(x => x.id === msg.id)){
+                return old;
+              }
+
+              return [
+                ...old,
+                msg
+              ];
+
+            });
+
+          }
+
+        }
+      )
+      .subscribe();
+
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+
+
+  }, [currentUser.id, otherUser.id]);
+
+
+
+
+
+  async function sendMessage() {
+
+
+    if(!text.trim()){
+      return;
+    }
+
+
+    if(!currentUser.id || !otherUser.id){
+
+      setDebug(
+        "Няма получател. Провери contact.id"
+      );
+
+      return;
+    }
+
+
+    const messageText = text.trim();
+
+
+    const { data, error } = await supabase
+      .from("messages")
+      .insert([
+        {
+          sender_id: currentUser.id,
+          receiver_id: otherUser.id,
+          text: messageText
+        }
+      ])
+      .select()
+      .single();
+
+
+
+    if(error){
+
+      setDebug(
+        "Грешка: " + error.message
+      );
+
+      return;
+
+    }
+
+
+
+    setText("");
+
+
+
+    setMessages(old => {
+
+      if(old.find(x => x.id === data.id)){
+        return old;
+      }
+
+      return [
+        ...old,
+        data
+      ];
+
+    });
+
+
+  }
+
+
+
+
+  useEffect(() => {
+
+    bottomRef.current?.scrollIntoView({
+      behavior:"smooth"
+    });
+
+  },[messages]);
+
+
+
+
 
   return (
+
     <div className="chat-room">
+
+
       <div className="chat-header">
-        <button className="back-btn" onClick={onBack}>← Back</button>
-        <h2>{otherUser.name}</h2>
+
+        <button
+          className="back-btn"
+          onClick={onBack}
+        >
+          ← Back
+        </button>
+
+
+        <h2>
+          {otherUser.name}
+        </h2>
+
+
       </div>
-      {debug? <div style={{ background: "#ffdddd", padding: "10px", fontSize: "12px" }}>DEBUG: {debug}</div> : null}
+
+
+
+      {debug &&
+
+        <div style={{
+          background:"#ffe0e0",
+          padding:"8px",
+          fontSize:"12px"
+        }}>
+
+          {debug}
+
+        </div>
+
+      }
+
+
+
       <div className="messages">
-        {messages.map((msg) => (
-          <div key={msg.id} className={msg.sender_id === currentUser.id? "message mine" : "message"}>{msg.text}</div>
+
+
+        {messages.map(msg => (
+
+          <div
+            key={msg.id}
+            className={
+              msg.sender_id === currentUser.id
+              ? "message mine"
+              : "message"
+            }
+          >
+
+            {msg.text}
+
+          </div>
+
         ))}
-        <div ref={bottomRef} />
+
+
+        <div ref={bottomRef}/>
+
+
       </div>
+
+
+
       <div className="message-input">
-        <input type="text" placeholder="Message..." value={text} onChange={(e) => setText(e.target.value)} />
-        <button onClick={sendMessage}>Send</button>
+
+
+        <input
+
+          value={text}
+
+          placeholder="Message..."
+
+          onChange={(e)=>
+            setText(e.target.value)
+          }
+
+          onKeyDown={(e)=>
+            e.key==="Enter" && sendMessage()
+          }
+
+        />
+
+
+
+        <button onClick={sendMessage}>
+          Send
+        </button>
+
+
       </div>
+
+
+
     </div>
+
   );
+
 }
