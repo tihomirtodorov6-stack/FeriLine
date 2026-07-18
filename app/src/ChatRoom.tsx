@@ -21,22 +21,50 @@ export default function ChatRoom({
 
   useEffect(() => {
 
-    socket.on("message", (data) => {
+    const savedUser = localStorage.getItem("ferilineUser");
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          text: data.text,
-          mine: false
-        }
-      ]);
+    let userId = "unknown";
 
-    });
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+
+      userId =
+        user.firstName ||
+        user.lastName ||
+        "unknown";
+    }
+
+
+    socket.emit(
+      "register",
+      userId
+    );
+
+
+    socket.on(
+      "message",
+      (data) => {
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            text: data.text,
+            mine: false
+          }
+        ]);
+
+      }
+    );
 
 
     return () => {
-      socket.off("message");
+
+      socket.off(
+        "message"
+      );
+
     };
+
 
   }, []);
 
@@ -44,22 +72,41 @@ export default function ChatRoom({
 
   function sendMessage() {
 
-    if (message.trim() === "") return;
+    if (message.trim() === "") {
+      return;
+    }
 
 
-    const currentUser =
+    const savedUser =
       localStorage.getItem("ferilineUser");
 
 
-    socket.emit("message", {
+    let sender = "unknown";
 
-      sender: currentUser,
 
-      receiver: name,
+    if (savedUser) {
 
-      text: message
+      const user =
+        JSON.parse(savedUser);
 
-    });
+      sender =
+        user.firstName ||
+        user.lastName ||
+        "unknown";
+
+    }
+
+
+
+    socket.emit(
+      "message",
+      {
+        sender: sender,
+        receiver: name,
+        text: message
+      }
+    );
+
 
 
     setMessages((prev) => [
@@ -71,6 +118,7 @@ export default function ChatRoom({
     ]);
 
 
+
     setMessage("");
 
   }
@@ -78,7 +126,9 @@ export default function ChatRoom({
 
 
   return (
+
     <div className="chat-room">
+
 
       <div className="chat-header">
 
@@ -89,6 +139,7 @@ export default function ChatRoom({
           ← Back
         </button>
 
+
         <h2>
           {name}
         </h2>
@@ -96,9 +147,11 @@ export default function ChatRoom({
       </div>
 
 
+
       <div className="messages">
 
-        {messages.map((msg, index) => (
+        {messages.map(
+          (msg, index) => (
 
           <div
             key={index}
@@ -108,7 +161,9 @@ export default function ChatRoom({
               : "message"
             }
           >
+
             {msg.text}
+
           </div>
 
         ))}
@@ -116,15 +171,21 @@ export default function ChatRoom({
       </div>
 
 
+
       <div className="message-input">
 
         <input
+
           type="text"
+
           placeholder="Message..."
+
           value={message}
+
           onChange={(e) =>
             setMessage(e.target.value)
           }
+
         />
 
 
@@ -134,8 +195,11 @@ export default function ChatRoom({
           Send
         </button>
 
+
       </div>
 
+
     </div>
+
   );
 }
