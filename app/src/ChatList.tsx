@@ -28,6 +28,7 @@ export default function ChatList() {
     const currentUser = JSON.parse(savedUser);
 
 
+
     const { data, error } = await supabase
       .from("contacts")
       .select("*")
@@ -37,9 +38,12 @@ export default function ChatList() {
 
 
     if (error) {
+
       console.log(error);
       return;
+
     }
+
 
 
     const friendIds = data.map((item) =>
@@ -49,21 +53,37 @@ export default function ChatList() {
     );
 
 
+
     if (friendIds.length === 0) {
+
       setContacts([]);
       return;
+
     }
 
 
-    const { data: users } = await supabase
+
+    const { data: users, error: usersError } = await supabase
       .from("users")
       .select("id,name,phone")
       .in("id", friendIds);
 
 
+
+    if (usersError) {
+
+      console.log(usersError);
+      return;
+
+    }
+
+
+
     setContacts(users || []);
 
   }
+
+
 
 
 
@@ -74,9 +94,11 @@ export default function ChatList() {
       "false"
     );
 
+
     localStorage.removeItem(
       "ferilineUser"
     );
+
 
     window.location.reload();
 
@@ -84,28 +106,38 @@ export default function ChatList() {
 
 
 
+
+
   if (selectedContact) {
 
     return (
+
       <ChatRoom
+        contact={selectedContact}
         name={selectedContact.name}
         onBack={() =>
           setSelectedContact(null)
         }
       />
+
     );
 
   }
 
 
 
+
+
   if (addFriend) {
 
     return (
+
       <AddFriend
+
         onBack={() =>
           setAddFriend(false)
         }
+
 
         onStartChat={(user) => {
 
@@ -113,10 +145,14 @@ export default function ChatList() {
           setAddFriend(false);
 
         }}
+
       />
+
     );
 
   }
+
+
 
 
 
@@ -124,72 +160,73 @@ export default function ChatList() {
 
     <div className="chat-list">
 
-      <h1>
-        FeriLine
-      </h1>
+
+      <div className="chat-header">
+
+        <h1>
+          FeriLine
+        </h1>
 
 
-      <h2>
-        Chats
-      </h2>
-
-
-
-      {contacts.length === 0 && (
-
-        <p>
-          No chats yet
-        </p>
-
-      )}
-
-
-
-      {contacts.map((contact) => (
-
-        <div
-          key={contact.id}
-          onClick={() =>
-            setSelectedContact(contact)
-          }
-          style={{
-            cursor: "pointer",
-            padding: "15px"
-          }}
+        <button
+          onClick={() => setAddFriend(true)}
         >
-
-          <h3>
-            👤 {contact.name}
-          </h3>
+          Add Friend
+        </button>
 
 
-          <p>
-            {contact.phone}
-          </p>
+      </div>
 
-        </div>
 
-      ))}
+
+
+
+      <div className="contacts">
+
+
+        {contacts.map((user) => (
+
+          <div
+
+            key={user.id}
+
+            className="contact"
+
+            onClick={() =>
+              setSelectedContact(user)
+            }
+
+          >
+
+            <h3>
+              {user.name}
+            </h3>
+
+
+            <p>
+              {user.phone}
+            </p>
+
+
+          </div>
+
+        ))}
+
+
+      </div>
+
+
 
 
 
       <button
-        className="primary-btn"
-        onClick={() =>
-          setAddFriend(true)
-        }
-      >
-        + Add Friend
-      </button>
-
-
-
-      <button
-        className="primary-btn"
         onClick={logout}
       >
+
         Logout
+
       </button>
+
 
 
     </div>
