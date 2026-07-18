@@ -20,9 +20,7 @@ export default function ChatList() {
 
     const savedUser = localStorage.getItem("ferilineUser");
 
-    if (!savedUser) {
-      return;
-    }
+    if (!savedUser) return;
 
 
     const currentUser = JSON.parse(savedUser);
@@ -37,45 +35,32 @@ export default function ChatList() {
       );
 
 
-    if (error) {
-
+    if(error){
       console.log(error);
       return;
-
     }
 
 
 
-    const friendIds = data.map((item) =>
+    const friendIds = data.map((item)=> 
       item.user_id === currentUser.id
-        ? item.friend_id
-        : item.user_id
+      ? item.friend_id
+      : item.user_id
     );
 
 
 
-    if (friendIds.length === 0) {
-
+    if(friendIds.length === 0){
       setContacts([]);
       return;
-
     }
 
 
 
-    const { data: users, error: usersError } = await supabase
+    const { data: users } = await supabase
       .from("users")
       .select("id,name,phone")
       .in("id", friendIds);
-
-
-
-    if (usersError) {
-
-      console.log(usersError);
-      return;
-
-    }
 
 
 
@@ -86,19 +71,16 @@ export default function ChatList() {
 
 
 
-
-  function logout() {
+  function logout(){
 
     localStorage.setItem(
       "ferilineLoggedIn",
       "false"
     );
 
-
     localStorage.removeItem(
       "ferilineUser"
     );
-
 
     window.location.reload();
 
@@ -108,14 +90,14 @@ export default function ChatList() {
 
 
 
-  if (selectedContact) {
+  if(selectedContact){
 
     return (
 
       <ChatRoom
         contact={selectedContact}
         name={selectedContact.name}
-        onBack={() =>
+        onBack={()=>
           setSelectedContact(null)
         }
       />
@@ -128,18 +110,16 @@ export default function ChatList() {
 
 
 
-  if (addFriend) {
+  if(addFriend){
 
     return (
 
       <AddFriend
-
-        onBack={() =>
+        onBack={()=>
           setAddFriend(false)
         }
 
-
-        onStartChat={(user) => {
+        onStartChat={(user)=>{
 
           setSelectedContact(user);
           setAddFriend(false);
@@ -171,9 +151,8 @@ export default function ChatList() {
         <button
           onClick={() => setAddFriend(true)}
         >
-          Add Friend
+          + Friend
         </button>
-
 
       </div>
 
@@ -184,7 +163,8 @@ export default function ChatList() {
       <div className="contacts">
 
 
-        {contacts.map((user) => (
+        {contacts.map((user)=>(
+
 
           <div
 
@@ -192,23 +172,39 @@ export default function ChatList() {
 
             className="contact"
 
-            onClick={() =>
+            onClick={()=>
               setSelectedContact(user)
             }
 
           >
 
-            <h3>
-              {user.name}
-            </h3>
+
+            <div className="avatar">
+
+              {user.name.charAt(0).toUpperCase()}
+
+            </div>
 
 
-            <p>
-              {user.phone}
-            </p>
+
+            <div className="contact-info">
+
+              <h3>
+                {user.name}
+              </h3>
+
+
+              <p>
+                {user.phone}
+              </p>
+
+
+            </div>
+
 
 
           </div>
+
 
         ))}
 
@@ -222,9 +218,7 @@ export default function ChatList() {
       <button
         onClick={logout}
       >
-
         Logout
-
       </button>
 
 
