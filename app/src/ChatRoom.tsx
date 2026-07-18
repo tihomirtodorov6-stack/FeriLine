@@ -24,13 +24,15 @@ export default function ChatRoom({
 
   useEffect(() => {
 
-    if (!otherUser.id) return;
+    if (!currentUser.id || !otherUser.id) {
+      return;
+    }
 
     loadHistory();
 
 
     const channel = supabase
-      .channel("messages")
+      .channel("messages-realtime")
       .on(
         "postgres_changes",
         {
@@ -40,23 +42,31 @@ export default function ChatRoom({
         },
         (payload) => {
 
-          const msg: any = payload.new;
+          const newMessage: any = payload.new;
+
 
           if (
-            (msg.sender_id === currentUser.id &&
-             msg.receiver_id === otherUser.id)
+            (newMessage.sender_id === currentUser.id &&
+             newMessage.receiver_id === otherUser.id)
             ||
-            (msg.sender_id === otherUser.id &&
-             msg.receiver_id === currentUser.id)
+            (newMessage.sender_id === otherUser.id &&
+             newMessage.receiver_id === currentUser.id)
           ) {
 
             setMessages((old) => {
 
-              if (old.find(x => x.id === msg.id)) {
+              const exists = old.some(
+                (m) => m.id === newMessage.id
+              );
+
+              if (exists) {
                 return old;
               }
 
-              return [...old, msg];
+              return [
+                ...old,
+                newMessage
+              ];
 
             });
 
@@ -84,9 +94,12 @@ export default function ChatRoom({
       .or(
         `and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUser.id}),and(sender_id.eq.${otherUser.id},receiver_id.eq.${currentUser.id})`
       )
-      .order("created_at", {
-        ascending: true
-      });
+      .order(
+        "created_at",
+        {
+          ascending: true
+        }
+      );
 
 
     setMessages(data || []);
@@ -97,7 +110,9 @@ export default function ChatRoom({
 
   async function sendMessage() {
 
-    if (!text.trim()) return;
+    if (!text.trim()) {
+      return;
+    }
 
 
     const messageText = text.trim();
@@ -119,14 +134,18 @@ export default function ChatRoom({
 
 
 
-    if (!error && data) {
+    if (error) {
 
-      setMessages((old) => [
-        ...old,
-        data
-      ]);
+      console.log(error);
+      return;
 
     }
+
+
+    setMessages((old) => [
+      ...old,
+      data
+    ]);
 
   }
 
@@ -149,6 +168,7 @@ export default function ChatRoom({
       <div className="chat-header">
 
         <button
+          className="back-btn"
           onClick={onBack}
         >
           ← Back
@@ -175,12 +195,15 @@ export default function ChatRoom({
               : "message"
             }
           >
+
             {msg.text}
+
           </div>
 
         ))}
 
-        <div ref={bottomRef}/>
+
+        <div ref={bottomRef} />
 
       </div>
 
@@ -189,9 +212,10 @@ export default function ChatRoom({
       <div className="message-input">
 
         <input
+          type="text"
           placeholder="Message..."
           value={text}
-          onChange={(e)=>
+          onChange={(e) =>
             setText(e.target.value)
           }
         />
