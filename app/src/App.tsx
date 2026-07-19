@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "./styles.css";
 import Register from "./Register";
 import ChatList from "./ChatList";
@@ -17,9 +17,17 @@ export default function App() {
   const [pin, setPin] = useState("");
 
 
-  useEffect(() => {
-    requestNotificationPermission();
-  }, []);
+  async function enableNotifications() {
+
+    const token = await requestNotificationPermission();
+
+    if (token) {
+      alert("FeriLine известията са включени!");
+    } else {
+      alert("Не успяхме да включим известията.");
+    }
+
+  }
 
 
   async function login() {
@@ -97,6 +105,14 @@ export default function App() {
       <p>
         Connect. Chat. Share.
       </p>
+
+
+      <button
+        className="primary-btn"
+        onClick={enableNotifications}
+      >
+        🔔 Включи известия
+      </button>
 
 
 
