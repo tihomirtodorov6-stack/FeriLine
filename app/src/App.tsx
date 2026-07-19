@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./styles.css";
 import Register from "./Register";
 import ChatList from "./ChatList";
 import { supabase } from "./supabase";
+import { requestNotificationPermission } from "./firebase-messaging";
 
 export default function App() {
 
@@ -14,6 +15,11 @@ export default function App() {
 
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
+
+
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
 
 
   async function login() {
