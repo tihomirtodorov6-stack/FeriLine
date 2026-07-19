@@ -31,13 +31,26 @@ export async function requestNotificationPermission() {
     alert("TOKEN: " + token);
 
 
+    const userData = localStorage.getItem("ferilineUser");
 
-    const user = JSON.parse(
-      localStorage.getItem("ferilineUser") || "null"
-    );
+    alert("RAW USER: " + userData);
 
 
-    if (user && token) {
+    const user = JSON.parse(userData || "null");
+
+
+    if (!user) {
+
+      alert("No user found in local storage");
+      return token;
+
+    }
+
+
+    alert("USER ID: " + user.id);
+
+
+    if (token) {
 
       const { data, error } = await supabase
         .from("users")
@@ -61,11 +74,6 @@ export async function requestNotificationPermission() {
         alert("Push token saved!");
 
       }
-
-
-    } else {
-
-      alert("No user or token");
 
     }
 
