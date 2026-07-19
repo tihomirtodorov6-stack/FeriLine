@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import "./styles.css";
 import Register from "./Register";
 import ChatList from "./ChatList";
+import { supabase } from "./supabase";
+import { requestNotificationPermission } from "./firebase-messaging";
 
 export default function App() {
+
   const savedUser = localStorage.getItem("ferilineUser");
 
   const [page, setPage] = useState(
@@ -13,7 +16,9 @@ export default function App() {
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
 
-  function login() {
+
+  async function login() {
+
     const saved = localStorage.getItem("ferilineUser");
 
     if (!saved) {
@@ -21,25 +26,53 @@ export default function App() {
       return;
     }
 
+
     const user = JSON.parse(saved);
+
 
     if (
       (name === user.firstName || name === user.lastName) &&
       pin === user.pin
     ) {
+
       setPage("chat");
+
+
+      const token = await requestNotificationPermission();
+
+
+      if (token) {
+
+        await supabase
+          .from("users")
+          .update({
+            push_token: token
+          })
+          .eq("id", user.id);
+
+      }
+
+
     } else {
+
       alert("Wrong name or PIN");
+
     }
+
   }
+
+
 
   if (page === "register") {
     return <Register />;
   }
 
+
   if (page === "chat") {
     return <ChatList />;
   }
+
+
 
   return (
     <div className="feriline-home">
@@ -48,11 +81,14 @@ export default function App() {
         F
       </div>
 
-      <h1>FeriLine</h1>
+      <h1>
+        FeriLine
+      </h1>
 
       <p>
         Connect. Chat. Share.
       </p>
+
 
       <button
         className="primary-btn"
@@ -61,13 +97,18 @@ export default function App() {
         Create account
       </button>
 
-      <h2>Login</h2>
+
+      <h2>
+        Login
+      </h2>
+
 
       <input
         placeholder="Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
+
 
       <input
         type="password"
@@ -76,12 +117,14 @@ export default function App() {
         onChange={(e) => setPin(e.target.value)}
       />
 
+
       <button
         className="primary-btn"
         onClick={login}
       >
         Login
       </button>
+
 
     </div>
   );
