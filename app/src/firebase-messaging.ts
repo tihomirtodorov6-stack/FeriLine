@@ -6,62 +6,77 @@ const VAPID_KEY = "BHzpMyloZq8_Nkn2hjB99kxbN45r7WvgLOXvZ4FCRdOwhMZy3UgarHiG2FoHY
 
 export async function requestNotificationPermission() {
 
-  const permission = await Notification.requestPermission();
+  try {
 
-  if (permission !== "granted") {
-    return null;
-  }
+    const permission = await Notification.requestPermission();
 
 
-  const registration = await navigator.serviceWorker.register(
-    "/firebase-messaging-sw.js"
-  );
+    if (permission !== "granted") {
+
+      return null;
+
+    }
 
 
-  const token = await getToken(messaging, {
-    vapidKey: VAPID_KEY,
-    serviceWorkerRegistration: registration
-  });
+    const registration = await navigator.serviceWorker.register(
+      "/firebase-messaging-sw.js"
+    );
 
 
-  alert("TOKEN OK");
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration
+    });
 
 
-  const user = JSON.parse(
-    localStorage.getItem("ferilineUser") || "null"
-  );
+
+    const user = JSON.parse(
+      localStorage.getItem("ferilineUser") || "null"
+    );
 
 
-  if (!user) {
+    if (!user) {
 
-    alert("Няма потребител");
+      alert("Няма намерен потребител.");
+
+      return token;
+
+    }
+
+
+
+    const { error } = await supabase
+      .from("users")
+      .update({
+        push_token: token
+      })
+      .eq("id", user.id);
+
+
+
+    if (error) {
+
+      alert("Грешка при запис: " + error.message);
+
+    } else {
+
+      alert("Известията са активирани и записани!");
+
+    }
+
+
+
     return token;
 
-  }
 
+  } catch (error) {
 
-  alert("USER ID: " + user.id);
+    console.error(error);
 
+    alert("Push грешка: " + error);
 
-  const result = await supabase
-    .from("users")
-    .update({
-      push_token: token
-    })
-    .eq("id", user.id);
-
-
-  if (result.error) {
-
-    alert("ERROR: " + result.error.message);
-
-  } else {
-
-    alert("ЗАПИСАНО!");
+    return null;
 
   }
-
-
-  return token;
 
 }
