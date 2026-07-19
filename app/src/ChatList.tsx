@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import ChatRoom from "./ChatRoom";
 import AddFriend from "./AddFriend";
 import { supabase } from "./supabase";
+import { requestNotificationPermission, disableNotifications } from "./firebase-messaging";
+
 
 export default function ChatList() {
 
@@ -67,6 +69,46 @@ export default function ChatList() {
     setContacts(users || []);
 
   }
+
+
+
+
+  async function enableNotifications(){
+
+    const token = await requestNotificationPermission();
+
+    if(token){
+
+      alert("🔔 Известията са включени!");
+
+    } else {
+
+      alert("Неуспешно включване.");
+
+    }
+
+  }
+
+
+
+
+  async function turnOffNotifications(){
+
+    const result = await disableNotifications();
+
+
+    if(result){
+
+      alert("🔕 Известията са изключени!");
+
+    } else {
+
+      alert("Неуспешно изключване.");
+
+    }
+
+  }
+
 
 
 
@@ -152,6 +194,23 @@ export default function ChatList() {
         </button>
 
       </div>
+
+
+
+      <button
+        className="primary-btn"
+        onClick={enableNotifications}
+      >
+        🔔 Включи известия
+      </button>
+
+
+      <button
+        className="primary-btn"
+        onClick={turnOffNotifications}
+      >
+        🔕 Изключи известия
+      </button>
 
 
 
