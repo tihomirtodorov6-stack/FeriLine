@@ -75,19 +75,42 @@ export default function ChatList() {
 
   async function enableNotifications(){
 
-    const token = await requestNotificationPermission();
+  const token = await requestNotificationPermission();
 
-    if(token){
+  if(token){
 
-      alert("🔔 Известията са включени!");
+    const user = JSON.parse(
+      localStorage.getItem("ferilineUser") || "{}"
+    );
 
-    } else {
+    if(user.id){
 
-      alert("Неуспешно включване.");
+      const { error } = await supabase
+        .from("users")
+        .update({
+          push_token: token
+        })
+        .eq(
+          "id",
+          user.id
+        );
+
+
+      if(error){
+        console.log(error);
+      }
 
     }
 
+    alert("🔔 Известията са включени!");
+
+  } else {
+
+    alert("Неуспешно включване.");
+
   }
+
+}
 
 
 
