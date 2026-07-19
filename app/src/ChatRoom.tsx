@@ -1,25 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
-import { supabase } from "./supabase";
-import { playMessageSound } from "./sound";
-
-export default function ChatRoom({ contact, onBack }: any) {
-
-  const [messages, setMessages] = useState<any[]>([]);
-  const [text, setText] = useState("");
-  const [online, setOnline] = useState(false);
-
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-
-
-  const currentUser = JSON.parse(
-    localStorage.getItem("ferilineUser") || "{}"
-  );
-
-
-  const otherUser = contact || {
-    id: null,
-    name: "User"
-  };
+};
 
 
 
@@ -27,13 +6,12 @@ export default function ChatRoom({ contact, onBack }: any) {
 
     if(!currentUser.id) return;
 
-
     await supabase
       .from("user_status")
       .upsert({
         user_id: currentUser.id,
-        online: true,
-        last_active: new Date()
+        online:true,
+        last_active:new Date()
       });
 
   }
@@ -45,27 +23,21 @@ export default function ChatRoom({ contact, onBack }: any) {
     if(!otherUser.id) return;
 
 
-    const { data } = await supabase
+    const {data}=await supabase
       .from("user_status")
       .select("last_active")
       .eq("user_id", otherUser.id)
       .single();
 
 
-
     if(data?.last_active){
 
-      const last =
-        new Date(data.last_active).getTime();
-
-      const now =
-        new Date().getTime();
-
+      const last = new Date(data.last_active).getTime();
+      const now = new Date().getTime();
 
       setOnline(
         now - last < 60000
       );
-
 
     } else {
 
@@ -77,13 +49,11 @@ export default function ChatRoom({ contact, onBack }: any) {
 
 
 
+
+
   async function loadHistory(){
 
-    if(!currentUser.id || !otherUser.id)
-      return;
-
-
-    const { data } = await supabase
+    const {data}=await supabase
       .from("messages")
       .select("*")
       .or(
@@ -103,12 +73,15 @@ export default function ChatRoom({ contact, onBack }: any) {
 
 
 
+
+
+
+
   useEffect(()=>{
 
-
-    if(!currentUser.id || !otherUser.id)
+    if(!currentUser.id || !otherUser.id){
       return;
-
+    }
 
 
     loadHistory();
@@ -119,7 +92,7 @@ export default function ChatRoom({ contact, onBack }: any) {
 
 
 
-    const timer = setInterval(()=>{
+    const timer=setInterval(()=>{
 
       updateMyStatus();
 
@@ -129,12 +102,10 @@ export default function ChatRoom({ contact, onBack }: any) {
 
 
 
-    const channel = supabase
+
+    const channel=supabase
       .channel(
-        "feriline-chat-" +
-        currentUser.id +
-        "-" +
-        otherUser.id
+        "chat-" + currentUser.id + "-" + otherUser.id
       )
       .on(
         "postgres_changes",
@@ -142,42 +113,32 @@ export default function ChatRoom({ contact, onBack }: any) {
           event:"INSERT",
           schema:"public",
           table:"messages"
-        },        },
+        },
         (payload)=>{
 
           const msg:any = payload.new;
 
 
           if(
-            (msg.sender_id === currentUser.id &&
-             msg.receiver_id === otherUser.id)
+            (msg.sender_id===currentUser.id &&
+             msg.receiver_id===otherUser.id)
             ||
-            (msg.sender_id === otherUser.id &&
-             msg.receiver_id === currentUser.id)
+            (msg.sender_id===otherUser.id &&
+             msg.receiver_id===currentUser.id)
           ){
 
 
             setMessages(old=>{
 
-
-              if(
-                old.some(
-                  item=>item.id === msg.id
-                )
-              ){
+              if(old.some(x=>x.id===msg.id)){
                 return old;
               }
 
 
-
-              if(
-                msg.sender_id === otherUser.id
-              ){
-
+              // звук само при получено съобщение
+              if(msg.sender_id===otherUser.id){
                 playMessageSound();
-
               }
-
 
 
               return [
@@ -185,12 +146,10 @@ export default function ChatRoom({ contact, onBack }: any) {
                 msg
               ];
 
-
             });
 
 
           }
-
 
         }
       )
@@ -213,46 +172,37 @@ export default function ChatRoom({ contact, onBack }: any) {
 
 
 
+
+
+
   async function sendMessage(){
 
-
-    if(!text.trim())
-      return;
+    if(!text.trim()) return;
 
 
-
-    if(!currentUser.id || !otherUser.id)
-      return;
-
-
-
-    const { data, error } =
-      await supabase
-        .from("messages")
-        .insert([
-          {
-            sender_id: currentUser.id,
-            receiver_id: otherUser.id,
-            text: text.trim()
-          }
-        ])
-        .select()
-        .single();
+    const {data,error}=await supabase
+      .from("messages")
+      .insert([
+        {
+          sender_id:currentUser.id,
+          receiver_id:otherUser.id,
+          text:text.trim()
+        }
+      ])
+      .select()
+      .single();
 
 
 
     if(error){
 
       console.log(error);
-
       return;
 
     }
 
 
-
     setText("");
-
 
 
     setMessages(old=>[
@@ -262,8 +212,10 @@ export default function ChatRoom({ contact, onBack }: any) {
 
     ]);
 
-
   }
+
+
+
 
 
 
@@ -271,15 +223,14 @@ export default function ChatRoom({ contact, onBack }: any) {
 
   useEffect(()=>{
 
-
     bottomRef.current?.scrollIntoView({
-
       behavior:"smooth"
-
     });
 
-
   },[messages]);
+
+
+
 
 
 
@@ -297,20 +248,15 @@ export default function ChatRoom({ contact, onBack }: any) {
           className="back-btn"
           onClick={onBack}
         >
-
           ←
-
         </button>
 
 
 
         <div className="chat-avatar">
 
-          {
-            otherUser.name
-            ? otherUser.name
-                .charAt(0)
-                .toUpperCase()
+          {otherUser.name
+            ? otherUser.name.charAt(0).toUpperCase()
             : "F"
           }
 
@@ -318,21 +264,17 @@ export default function ChatRoom({ contact, onBack }: any) {
 
 
 
+
         <div className="user-title">
 
-
           <h2>
-
             {otherUser.name}
-
           </h2>
-
 
 
           <span className="online-status">
 
-            {
-              online
+            {online
               ? "🟢 Online"
               : "⚪ Offline"
             }
@@ -344,18 +286,16 @@ export default function ChatRoom({ contact, onBack }: any) {
 
 
 
-      </div>        <div className="call-buttons">
-
-          <button>
-            📞
-          </button>
 
 
-          <button>
-            📷
-          </button>
+        <div className="call-buttons">
+
+          <button>📞</button>
+
+          <button>📷</button>
 
         </div>
+
 
 
       </div>
@@ -363,18 +303,19 @@ export default function ChatRoom({ contact, onBack }: any) {
 
 
 
+
+
       <div className="messages">
 
 
-        {messages.map((msg)=>(
-
+        {messages.map(msg=>(
 
           <div
 
             key={msg.id}
 
             className={
-              msg.sender_id === currentUser.id
+              msg.sender_id===currentUser.id
               ? "message mine"
               : "message"
             }
@@ -390,11 +331,12 @@ export default function ChatRoom({ contact, onBack }: any) {
         ))}
 
 
-
         <div ref={bottomRef}/>
 
 
       </div>
+
+
 
 
 
@@ -409,23 +351,17 @@ export default function ChatRoom({ contact, onBack }: any) {
 
           placeholder="Message..."
 
-          onChange={(e)=>
-            setText(e.target.value)
-          }
-
+          onChange={(e)=>setText(e.target.value)}
 
           onKeyDown={(e)=>
-            e.key === "Enter" &&
-            sendMessage()
+            e.key==="Enter" && sendMessage()
           }
 
         />
 
 
 
-        <button
-          onClick={sendMessage}
-        >
+        <button onClick={sendMessage}>
 
           Send
 
@@ -436,11 +372,8 @@ export default function ChatRoom({ contact, onBack }: any) {
       </div>
 
 
-
-
     </div>
 
   );
-
 
 }
