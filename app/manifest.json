@@ -8,9 +8,9 @@
   "theme_color": "#111111",
   "icons": [
     {
-      "src": "/IMG_2480.jpeg",
+      "src": "/feriline_chat_f2.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png"
     }
   ]
 }
