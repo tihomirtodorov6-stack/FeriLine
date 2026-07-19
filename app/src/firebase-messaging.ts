@@ -1,8 +1,9 @@
-import { getToken } from "firebase/messaging";
+import { getToken, deleteToken } from "firebase/messaging";
 import { messaging } from "./firebase";
 import { supabase } from "./supabase";
 
 const VAPID_KEY = "BHzpMyloZq8_Nkn2hjB99kxbN45r7WvgLOXvZ4FCRdOwhMZy3UgarHiG2FoHYtHDUdFUqVGq1ayc0hSkmsGQoiY";
+
 
 export async function requestNotificationPermission() {
 
@@ -10,11 +11,8 @@ export async function requestNotificationPermission() {
 
     const permission = await Notification.requestPermission();
 
-
     if (permission !== "granted") {
-
       return null;
-
     }
 
 
@@ -29,41 +27,21 @@ export async function requestNotificationPermission() {
     });
 
 
-
     const user = JSON.parse(
       localStorage.getItem("ferilineUser") || "null"
     );
 
 
-    if (!user) {
+    if (user && token) {
 
-      alert("Няма намерен потребител.");
-
-      return token;
-
-    }
-
-
-
-    const { error } = await supabase
-      .from("users")
-      .update({
-        push_token: token
-      })
-      .eq("id", user.id);
-
-
-
-    if (error) {
-
-      alert("Грешка при запис: " + error.message);
-
-    } else {
-
-      alert("Известията са активирани и записани!");
+      await supabase
+        .from("users")
+        .update({
+          push_token: token
+        })
+        .eq("id", user.id);
 
     }
-
 
 
     return token;
@@ -71,11 +49,46 @@ export async function requestNotificationPermission() {
 
   } catch (error) {
 
-    console.error(error);
-
-    alert("Push грешка: " + error);
-
+    console.log(error);
     return null;
+
+  }
+
+}
+
+
+
+export async function disableNotifications() {
+
+  try {
+
+    const user = JSON.parse(
+      localStorage.getItem("ferilineUser") || "null"
+    );
+
+
+    await deleteToken(messaging);
+
+
+    if(user){
+
+      await supabase
+        .from("users")
+        .update({
+          push_token: null
+        })
+        .eq("id", user.id);
+
+    }
+
+
+    return true;
+
+
+  } catch(error){
+
+    console.log(error);
+    return false;
 
   }
 
