@@ -3,7 +3,6 @@ import "./styles.css";
 import Register from "./Register";
 import ChatList from "./ChatList";
 import { supabase } from "./supabase";
-import { requestNotificationPermission } from "./firebase-messaging";
 
 export default function App() {
 
@@ -15,36 +14,6 @@ export default function App() {
 
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
-
-
-  async function enableNotifications() {
-
-    const user = localStorage.getItem("ferilineUser");
-
-
-    if (!user) {
-
-      alert("Първо влез в профила си.");
-
-      return;
-
-    }
-
-
-    const token = await requestNotificationPermission();
-
-
-    if (token) {
-
-      alert("FeriLine известията са включени!");
-
-    } else {
-
-      alert("Не успяхме да включим известията.");
-
-    }
-
-  }
 
 
 
@@ -85,6 +54,7 @@ export default function App() {
 
 
 
+
   if (page === "register") {
 
     return (
@@ -94,6 +64,7 @@ export default function App() {
     );
 
   }
+
 
 
 
@@ -107,13 +78,16 @@ export default function App() {
 
 
 
+
   return (
 
     <div className="feriline-home">
 
+
       <div className="logo">
         F
       </div>
+
 
 
       <h1>
@@ -121,18 +95,11 @@ export default function App() {
       </h1>
 
 
+
       <p>
         Connect. Chat. Share.
       </p>
 
-
-
-      <button
-        className="primary-btn"
-        onClick={enableNotifications}
-      >
-        🔔 Включи известия
-      </button>
 
 
 
@@ -145,9 +112,11 @@ export default function App() {
 
 
 
+
       <h2>
         Login
       </h2>
+
 
 
 
@@ -156,6 +125,7 @@ export default function App() {
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
       />
+
 
 
 
@@ -168,12 +138,14 @@ export default function App() {
 
 
 
+
       <button
         className="primary-btn"
         onClick={login}
       >
         Login
       </button>
+
 
 
     </div>
