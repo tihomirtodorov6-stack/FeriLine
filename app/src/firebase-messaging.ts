@@ -39,23 +39,33 @@ export async function requestNotificationPermission() {
 
     if (user && token) {
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("users")
         .update({
           push_token: token
         })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        .select();
+
+
+      console.log("UPDATE DATA:", data);
+      console.log("UPDATE ERROR:", error);
 
 
       if (error) {
-        console.log("Supabase error:", error);
+
+        alert("Supabase error: " + error.message);
+
       } else {
-        console.log("Push token saved!");
+
+        alert("Push token saved!");
+
       }
+
 
     } else {
 
-      console.log("No user or token");
+      alert("No user or token");
 
     }
 
@@ -66,6 +76,7 @@ export async function requestNotificationPermission() {
   } catch (error) {
 
     console.error("Push error:", error);
+
     alert("Push error: " + error);
 
     return null;
