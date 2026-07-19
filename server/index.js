@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
+const admin = require("firebase-admin");
 
 const app = express();
 
@@ -9,8 +10,14 @@ app.use(cors());
 app.use(express.json());
 
 
-app.get("/", (req, res) => {
-  res.send("FeriLine Server is running");
+// Firebase настройка от Render Environment
+const serviceAccount = JSON.parse(
+  process.env.FIREBASE_SERVICE_ACCOUNT
+);
+
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
 });
 
 
@@ -24,16 +31,61 @@ const io = new Server(server, {
 });
 
 
-// временна база потребители
-const users = {};
 
-
-// активни връзки
-const onlineUsers = {};
+app.get("/", (req,res)=>{
+  res.send("FeriLine Server is running");
+});
 
 
 
-io.on("connection", (socket) => {
+// изпращане на push известие
+app.post("/send-notification", async (req,res)=>{
+
+  const {
+    token,
+    title,
+    body
+  } = req.body;
+
+
+  try {
+
+
+    await admin.messaging().send({
+
+      token: token,
+
+      notification:{
+        title:title,
+        body:body
+      }
+
+    });
+
+
+    res.json({
+      success:true
+    });
+
+
+  } catch(error){
+
+    console.log(error);
+
+    res.json({
+      success:false,
+      error:error.message
+    });
+
+  }
+
+});
+
+
+
+
+
+io.on("connection",(socket)=>{
 
   console.log(
     "User connected:",
@@ -41,150 +93,19 @@ io.on("connection", (socket) => {
   );
 
 
-
-  // регистрация с телефон
-  socket.on(
-    "registerUser",
-    (user) => {
-
-
-      users[user.phone] = {
-
-        name: user.name,
-
-        phone: user.phone
-
-      };
-
-
-      onlineUsers[user.phone] =
-        socket.id;
-
-
-
-      console.log(
-        "Registered:",
-        users[user.phone]
-      );
-
-
-
-      socket.emit(
-        "registered",
-        users[user.phone]
-      );
-
-
-    }
-  );
-
-
-
-
-  // търсене по телефон
-  socket.on(
-    "findUser",
-    (phone) => {
-
-
-      const user =
-        users[phone];
-
-
-
-      if (user) {
-
-
-        socket.emit(
-          "userFound",
-          user
-        );
-
-
-      } else {
-
-
-        socket.emit(
-          "userNotFound"
-        );
-
-
-      }
-
-
-    }
-  );
-
-
-
-
-
-  // съобщения
-  socket.on(
-    "message",
-    (data) => {
-
-
-      const receiver =
-        onlineUsers[data.receiver];
-
-
-
-      if (receiver) {
-
-
-        io.to(receiver)
-          .emit(
-            "message",
-            {
-
-              sender: data.sender,
-
-              text: data.text
-
-            }
-          );
-
-
-      }
-
-
-    }
-  );
-
-
-
-
-
-  socket.on(
-    "disconnect",
-    () => {
-
-
-      console.log(
-        "User disconnected:",
-        socket.id
-      );
-
-
-    }
-  );
-
-
 });
+
+
 
 
 
 const PORT = 3000;
 
 
-server.listen(
-  PORT,
-  () => {
+server.listen(PORT,()=>{
 
-    console.log(
-      `FeriLine server running on port ${PORT}`
-    );
+  console.log(
+    `FeriLine server running on port ${PORT}`
+  );
 
-  }
-);
+});
