@@ -1,5 +1,6 @@
 import { getToken } from "firebase/messaging";
 import { messaging } from "./firebase";
+import { supabase } from "./supabase";
 
 const VAPID_KEY = "BHzpMyloZq8_Nkn2hjB99kxbN45r7WvgLOXvZ4FCRdOwhMZy3UgarHiG2FoHYtHDUdFUqVGq1ayc0hSkmsGQoiY";
 
@@ -22,9 +23,29 @@ export async function requestNotificationPermission() {
       serviceWorkerRegistration: registration
     });
 
+
     console.log("FeriLine Push Token:", token);
 
+
+    const user = JSON.parse(
+      localStorage.getItem("ferilineUser") || "null"
+    );
+
+
+    if (user && token) {
+
+      await supabase
+        .from("users")
+        .update({
+          push_token: token
+        })
+        .eq("id", user.id);
+
+    }
+
+
     return token;
+
 
   } catch (error) {
 
