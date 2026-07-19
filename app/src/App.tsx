@@ -19,15 +19,33 @@ export default function App() {
 
   async function enableNotifications() {
 
+    const user = localStorage.getItem("ferilineUser");
+
+
+    if (!user) {
+
+      alert("Първо влез в профила си.");
+
+      return;
+
+    }
+
+
     const token = await requestNotificationPermission();
 
+
     if (token) {
+
       alert("FeriLine известията са включени!");
+
     } else {
+
       alert("Не успяхме да включим известията.");
+
     }
 
   }
+
 
 
   async function login() {
@@ -43,6 +61,7 @@ export default function App() {
     if (error || !data) {
 
       alert("Wrong phone or PIN");
+
       return;
 
     }
@@ -107,6 +126,7 @@ export default function App() {
       </p>
 
 
+
       <button
         className="primary-btn"
         onClick={enableNotifications}
@@ -159,4 +179,5 @@ export default function App() {
     </div>
 
   );
+
 }
