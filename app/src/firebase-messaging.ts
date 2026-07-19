@@ -14,9 +14,11 @@ export async function requestNotificationPermission() {
       return null;
     }
 
+
     const registration = await navigator.serviceWorker.register(
       "/firebase-messaging-sw.js"
     );
+
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
@@ -26,6 +28,9 @@ export async function requestNotificationPermission() {
 
     console.log("FeriLine Push Token:", token);
 
+    alert("TOKEN: " + token);
+
+
 
     const user = JSON.parse(
       localStorage.getItem("ferilineUser") || "null"
@@ -34,12 +39,23 @@ export async function requestNotificationPermission() {
 
     if (user && token) {
 
-      await supabase
+      const { error } = await supabase
         .from("users")
         .update({
           push_token: token
         })
         .eq("id", user.id);
+
+
+      if (error) {
+        console.log("Supabase error:", error);
+      } else {
+        console.log("Push token saved!");
+      }
+
+    } else {
+
+      console.log("No user or token");
 
     }
 
@@ -50,6 +66,8 @@ export async function requestNotificationPermission() {
   } catch (error) {
 
     console.error("Push error:", error);
+    alert("Push error: " + error);
+
     return null;
 
   }
