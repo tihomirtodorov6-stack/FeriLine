@@ -1,7 +1,7 @@
 export function playMessageSound() {
 
   const audio = new Audio(
-    "data:audio/wav;base64,UklGRl9vT19teleWAVEAAAAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="
+    "https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
   );
 
   audio.volume = 1;
