@@ -240,8 +240,19 @@ if(incomingCall){
     setSelectedContact(incomingCall.caller);
 
   }}
+  style={{
+    width:"150px",
+    height:"150px",
+    borderRadius:"50%",
+    background:"#28a745",
+    color:"#fff",
+    fontSize:"24px",
+    border:"none",
+    marginBottom:"30px",
+    cursor:"pointer"
+  }}
 >
-  Accept
+  📞
 </button>
 
 
