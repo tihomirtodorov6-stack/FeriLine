@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase";
 import { playMessageSound } from "./sound";
-
+import Call from "./Call";
 export default function ChatRoom({ name, contact, onBack }: any) {
 
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [online, setOnline] = useState(false);
-
+const [calling, setCalling] = useState(false);
   const bottomRef = useRef<any>(null);
 
   const currentUser = JSON.parse(
