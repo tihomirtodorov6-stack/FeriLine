@@ -276,7 +276,60 @@ const callChannel = supabase
 
 
 
+if(incomingCall){
 
+  return(
+    <div
+      style={{
+        height:"100vh",
+        background:"#111",
+        color:"#fff",
+        display:"flex",
+        flexDirection:"column",
+        justifyContent:"center",
+        alignItems:"center"
+      }}
+    >
+
+      <h2>📞 Incoming call</h2>
+
+      <p>Someone is calling you</p>
+
+      <button
+        style={{
+          width:"120px",
+          height:"120px",
+          borderRadius:"50%",
+          background:"green",
+          color:"white",
+          fontSize:"20px",
+          margin:"20px",
+          border:"none"
+        }}
+      >
+        Приеми
+      </button>
+
+
+      <button
+        style={{
+          width:"120px",
+          height:"120px",
+          borderRadius:"50%",
+          background:"red",
+          color:"white",
+          fontSize:"20px",
+          border:"none"
+        }}
+      >
+        Откажи
+      </button>
+
+
+    </div>
+  );
+
+}
 if (calling) {
   return (
     <Call
