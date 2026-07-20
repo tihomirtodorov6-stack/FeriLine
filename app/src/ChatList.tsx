@@ -333,14 +333,15 @@ if(incomingCall){
   <button
   onClick={async()=>{
 
-    await supabase
-      .from("calls")
-      .update({
-        status:"rejected"
-      })
-      .eq("id", incomingCall.id);
+  await supabase
+  .from("calls")
+  .update({
+    status:"rejected"
+  })
+  .eq("id", incomingCall.id);
 
-    setIncomingCall(null);
+setIncomingCall(null);
+window.location.reload();
 
   }}
   style={{
