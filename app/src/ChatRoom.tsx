@@ -7,7 +7,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [online, setOnline] = useState(false);
-const [calling, setCalling] = useState(false);
+const [calling, setCalling] = useState(false);const [incomingCall, setIncomingCall] = useState<any>(null);
   const bottomRef = useRef<any>(null);
 
   const currentUser = JSON.parse(
