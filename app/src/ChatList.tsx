@@ -202,7 +202,52 @@ const [incomingCall, setIncomingCall] = useState<any>(null);
 
 
 
+if(incomingCall){
 
+  return(
+    <div
+      style={{
+        display:"flex",
+        flexDirection:"column",
+        justifyContent:"center",
+        alignItems:"center",
+        height:"100vh",
+        background:"#111",
+        color:"#fff"
+      }}
+    >
+
+      <h2>
+        📞 Incoming call
+      </h2>
+
+      <h3>
+        {incomingCall.caller?.name}
+      </h3>
+
+
+      <button
+        onClick={()=>{
+          setIncomingCall(null);
+          setSelectedContact(incomingCall.caller);
+        }}
+      >
+        Accept
+      </button>
+
+
+      <button
+        onClick={()=>{
+          setIncomingCall(null);
+        }}
+      >
+        Decline
+      </button>
+
+    </div>
+  );
+
+}
   if(selectedContact){
 
     return(
