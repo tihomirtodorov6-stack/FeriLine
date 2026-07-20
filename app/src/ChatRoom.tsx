@@ -296,20 +296,7 @@ if(incomingCall){
 
       <p>Someone is calling you</p>
 
-      <button
-        style={{
-          width:"120px",
-          height:"120px",
-          borderRadius:"50%",
-          background:"green",
-          color:"white",
-          fontSize:"20px",
-          margin:"20px",
-          border:"none"
-        }}
-      >
-        Приеми
-      </button>
+  
 
 
     <button
