@@ -37,7 +37,10 @@ const [incomingCall, setIncomingCall] = useState<any>(null);
       },
       async (payload) => {
 
-        const call = payload.new;
+        const call = payload.new;if(call.status === "ended"){
+  setIncomingCall(null);
+  return;
+}
 if(call.status !== "ringing" && !call.offer){
   return;
 }
