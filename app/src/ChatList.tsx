@@ -246,13 +246,22 @@ if(incomingCall){
 </button>
 
 
-      <button
-        onClick={()=>{
-          setIncomingCall(null);
-        }}
-      >
-        Decline
-      </button>
+  <button
+  onClick={()=>{
+    setIncomingCall(null);
+  }}
+  style={{
+    width:"150px",
+    height:"150px",
+    borderRadius:"50%",
+    background:"red",
+    color:"white",
+    fontSize:"22px",
+    border:"none"
+  }}
+>
+  Decline
+</button>
 
     </div>
   );
