@@ -312,19 +312,32 @@ if(incomingCall){
       </button>
 
 
-      <button
-        style={{
-          width:"120px",
-          height:"120px",
-          borderRadius:"50%",
-          background:"red",
-          color:"white",
-          fontSize:"20px",
-          border:"none"
-        }}
-      >
-        Откажи
-      </button>
+    <button
+  onClick={async()=>{
+
+    await supabase
+      .from("calls")
+      .update({
+        status:"accepted"
+      })
+      .eq("id", incomingCall.id);
+
+    setIncomingCall(null);
+
+  }}
+  style={{
+    width:"150px",
+    height:"150px",
+    borderRadius:"50%",
+    background:"green",
+    color:"white",
+    fontSize:"22px",
+    margin:"20px",
+    border:"none"
+  }}
+>
+  Приеми
+</button>
 
 
     </div>
