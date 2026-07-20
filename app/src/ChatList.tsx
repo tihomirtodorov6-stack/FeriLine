@@ -46,7 +46,7 @@ const [incomingCall, setIncomingCall] = useState<any>(null);
           .eq("id", call.caller_id)
           .single();
 
-
+console.log("INCOMING CALL", call);
         setIncomingCall({
           ...call,
           caller: data
