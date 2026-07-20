@@ -176,7 +176,27 @@ const [calling, setCalling] = useState(false);const [incomingCall, setIncomingCa
       .subscribe();
 
 
+const callChannel = supabase
+  .channel("calls-" + currentUser.id)
+  .on(
+    "postgres_changes",
+    {
+      event:"INSERT",
+      schema:"public",
+      table:"calls",
+      filter:`receiver_id=eq.${currentUser.id}`
+    },
+    (payload)=>{
 
+      const call:any = payload.new;
+
+      if(call.status === "ringing"){
+        setIncomingCall(call);
+      }
+
+    }
+  )
+  .subscribe();
     return ()=>{
 
       clearInterval(timer);
