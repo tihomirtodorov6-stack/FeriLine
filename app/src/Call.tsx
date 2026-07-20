@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 export default function Call({ contact, onBack }: any) {
 
   const [status, setStatus] = useState("Starting call...");
+  const [callId, setCallId] = useState<string | null>(null);
 
   const currentUser = JSON.parse(
     localStorage.getItem("ferilineUser") || "{}"
@@ -18,26 +19,21 @@ export default function Call({ contact, onBack }: any) {
     }
 
 
-    // включване на микрофона
     try {
 
       await navigator.mediaDevices.getUserMedia({
         audio:true
       });
 
-      setStatus("Microphone ready");
-
     } catch(error){
 
-      console.log(error);
-      setStatus("Microphone permission denied");
+      setStatus("Microphone denied");
       return;
 
     }
 
 
-
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("calls")
       .insert([
         {
@@ -45,7 +41,9 @@ export default function Call({ contact, onBack }: any) {
           receiver_id: contact.id,
           status:"ringing"
         }
-      ]);
+      ])
+      .select()
+      .single();
 
 
     if(error){
@@ -56,6 +54,8 @@ export default function Call({ contact, onBack }: any) {
 
     }
 
+
+    setCallId(data.id);
 
     setStatus("Calling " + contact.name);
 
@@ -71,8 +71,56 @@ export default function Call({ contact, onBack }: any) {
 
 
 
-  return (
+  useEffect(()=>{
 
+    if(!callId) return;
+
+
+    const channel = supabase
+      .channel("call-status-" + callId)
+      .on(
+        "postgres_changes",
+        {
+          event:"UPDATE",
+          schema:"public",
+          table:"calls",
+          filter:`id=eq.${callId}`
+        },
+        (payload)=>{
+
+          const call:any = payload.new;
+
+
+          if(call.status === "accepted"){
+
+            setStatus("Connected");
+
+          }
+
+
+          if(call.status === "rejected"){
+
+            setStatus("Call declined");
+
+          }
+
+        }
+      )
+      .subscribe();
+
+
+    return ()=>{
+
+      supabase.removeChannel(channel);
+
+    };
+
+
+  },[callId]);
+
+
+
+  return(
     <div
       style={{
         height:"100vh",
@@ -85,14 +133,9 @@ export default function Call({ contact, onBack }: any) {
       }}
     >
 
-      <h2>
-        📞 FeriLine Call
-      </h2>
+      <h2>📞 FeriLine Call</h2>
 
-
-      <p>
-        {status}
-      </p>
+      <p>{status}</p>
 
 
       <button
@@ -105,9 +148,7 @@ export default function Call({ contact, onBack }: any) {
         End call
       </button>
 
-
     </div>
-
   );
 
 }
