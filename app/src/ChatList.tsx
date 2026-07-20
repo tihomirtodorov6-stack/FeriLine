@@ -269,8 +269,18 @@ if(incomingCall){
     setIncomingCall(null);
 
   }}
+  style={{
+    width:"150px",
+    height:"150px",
+    borderRadius:"50%",
+    background:"#dc3545",
+    color:"#fff",
+    fontSize:"24px",
+    border:"none",
+    cursor:"pointer"
+  }}
 >
-  Decline
+  ❌
 </button>
 
     </div>
