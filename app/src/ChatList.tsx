@@ -10,11 +10,59 @@ export default function ChatList() {
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [addFriend, setAddFriend] = useState(false);
   const [contacts, setContacts] = useState<any[]>([]);
-
+const [incomingCall, setIncomingCall] = useState<any>(null);
 
   useEffect(() => {
-    loadContacts();
-  }, []);
+
+  loadContacts();
+
+
+  const savedUser = localStorage.getItem("ferilineUser");
+
+  if (!savedUser) return;
+
+
+  const currentUser = JSON.parse(savedUser);
+
+
+  const channel = supabase
+    .channel("incoming-calls-" + currentUser.id)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "calls",
+        filter: `receiver_id=eq.${currentUser.id}`
+      },
+      async (payload) => {
+
+        const call = payload.new;
+
+
+        const { data } = await supabase
+          .from("users")
+          .select("id,name")
+          .eq("id", call.caller_id)
+          .single();
+
+
+        setIncomingCall({
+          ...call,
+          caller: data
+        });
+
+      }
+    )
+    .subscribe();
+
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+
+
+}, []);
 
 
 
