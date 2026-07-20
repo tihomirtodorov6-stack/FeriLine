@@ -177,18 +177,21 @@ const call:any = payload.new;
 
 
 
+if(call.status==="accepted"){
+
+ setStatus("Connected");
+
+}
+
+
 if(call.answer && peer.current){
 
  await peer.current.setRemoteDescription(
   call.answer
  );
 
-
- setStatus("Connected");
-
-
 }
-console.log("CALL UPDATE:", call);
+
 
 
 if(call.status==="rejected"){
