@@ -30,7 +30,7 @@ const [incomingCall, setIncomingCall] = useState<any>(null);
     .on(
       "postgres_changes",
       {
-        event: "INSERT",
+        event: "*",
         schema: "public",
         table: "calls",
         filter: `receiver_id=eq.${currentUser.id}`
