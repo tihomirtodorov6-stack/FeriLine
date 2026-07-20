@@ -317,7 +317,11 @@ if (calling) {
 
         <div className="call-buttons">
 
-          <button>📞</button>
+          <button
+  onClick={() => setCalling(true)}
+>
+  📞
+</button>
 
           <button>📷</button>
 
