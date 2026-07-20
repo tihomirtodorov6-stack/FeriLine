@@ -255,7 +255,14 @@ const [calling, setCalling] = useState(false);
 
 
 
-
+if (calling) {
+  return (
+    <Call
+      contact={otherUser}
+      onBack={() => setCalling(false)}
+    />
+  );
+}
   return (
 
     <div className="chat-room">
