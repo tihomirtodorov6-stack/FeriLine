@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 export default function Call({ contact, onBack }: any) {
 
   const [status, setStatus] = useState("Starting call...");
+  const [callId, setCallId] = useState<string | null>(null);
 
   const currentUser = JSON.parse(
     localStorage.getItem("ferilineUser") || "{}"
@@ -18,7 +19,7 @@ export default function Call({ contact, onBack }: any) {
     }
 
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("calls")
       .insert([
         {
@@ -26,7 +27,10 @@ export default function Call({ contact, onBack }: any) {
           receiver_id: contact.id,
           status: "ringing"
         }
-      ]);
+      ])
+      .select()
+      .single();
+
 
 
     if(error){
@@ -38,10 +42,11 @@ export default function Call({ contact, onBack }: any) {
     }
 
 
+    setCallId(data.id);
+
     setStatus("Calling " + contact.name);
 
   }
-
 
 
 
@@ -50,6 +55,56 @@ export default function Call({ contact, onBack }: any) {
     startCall();
 
   },[]);
+
+
+
+  useEffect(()=>{
+
+    if(!callId) return;
+
+
+    const channel = supabase
+      .channel("call-status-" + callId)
+      .on(
+        "postgres_changes",
+        {
+          event:"UPDATE",
+          schema:"public",
+          table:"calls",
+          filter:`id=eq.${callId}`
+        },
+        (payload)=>{
+
+          const call:any = payload.new;
+
+
+          if(call.status === "accepted"){
+
+            setStatus("Connected");
+
+          }
+
+
+          if(call.status === "rejected"){
+
+            setStatus("Call declined");
+
+          }
+
+        }
+      )
+      .subscribe();
+
+
+
+    return ()=>{
+
+      supabase.removeChannel(channel);
+
+    };
+
+
+  },[callId]);
 
 
 
