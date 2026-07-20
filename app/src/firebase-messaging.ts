@@ -9,9 +9,15 @@ export async function requestNotificationPermission() {
 
   try {
 
+    console.log("START PUSH");
+
     const permission = await Notification.requestPermission();
 
+    console.log("PERMISSION:", permission);
+
+
     if (permission !== "granted") {
+      console.log("NO PERMISSION");
       return null;
     }
 
@@ -20,11 +26,16 @@ export async function requestNotificationPermission() {
       "/firebase-messaging-sw.js"
     );
 
+    console.log("SERVICE WORKER OK");
+
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration
     });
+
+
+    console.log("FCM TOKEN:", token);
 
 
     const user = JSON.parse(
@@ -34,12 +45,17 @@ export async function requestNotificationPermission() {
 
     if (user && token) {
 
-      await supabase
+      const { error } = await supabase
         .from("users")
         .update({
           push_token: token
         })
         .eq("id", user.id);
+
+
+      if(error){
+        console.log("SUPABASE ERROR:", error);
+      }
 
     }
 
@@ -49,7 +65,8 @@ export async function requestNotificationPermission() {
 
   } catch (error) {
 
-    console.log(error);
+    console.log("PUSH ERROR:", error);
+
     return null;
 
   }
@@ -87,7 +104,8 @@ export async function disableNotifications() {
 
   } catch(error){
 
-    console.log(error);
+    console.log("DELETE PUSH ERROR:", error);
+
     return false;
 
   }
