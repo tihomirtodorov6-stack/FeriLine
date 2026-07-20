@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 
 export default function Call({ contact, onBack }: any) {
 
   const [status, setStatus] = useState("Starting call...");
-  const [callId, setCallId] = useState<string | null>(null);
+  const [callId, setCallId] = useState<number | null>(null);
+
+  const peer = useRef<RTCPeerConnection | null>(null);
+  const localStream = useRef<MediaStream | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const currentUser = JSON.parse(
     localStorage.getItem("ferilineUser") || "{}"
@@ -19,18 +23,43 @@ export default function Call({ contact, onBack }: any) {
     }
 
 
-    try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio:true
+    });
 
-      await navigator.mediaDevices.getUserMedia({
-        audio:true
-      });
 
-    } catch(error){
+    localStream.current = stream;
 
-      setStatus("Microphone denied");
-      return;
 
-    }
+    const pc = new RTCPeerConnection({
+      iceServers:[
+        {
+          urls:"stun:stun.l.google.com:19302"
+        }
+      ]
+    });
+
+
+    peer.current = pc;
+
+
+    stream.getTracks().forEach(track=>{
+      pc.addTrack(track,stream);
+    });
+
+
+
+    pc.ontrack = (event)=>{
+
+      if(audioRef.current){
+
+        audioRef.current.srcObject =
+          event.streams[0];
+
+      }
+
+    };
+
 
 
     const { data, error } = await supabase
@@ -46,6 +75,7 @@ export default function Call({ contact, onBack }: any) {
       .single();
 
 
+
     if(error){
 
       console.log(error);
@@ -57,98 +87,226 @@ export default function Call({ contact, onBack }: any) {
 
     setCallId(data.id);
 
-    setStatus("Calling " + contact.name);
+
+
+    pc.onicecandidate = async(event)=>{
+
+      if(event.candidate){
+
+        await supabase
+          .from("call_ice_candidates")
+          .insert({
+
+            call_id:data.id,
+
+            user_id:currentUser.id,
+
+            candidate:event.candidate
+
+          });
+
+      }
+
+    };
+
+
+
+    const offer = await pc.createOffer();
+
+    await pc.setLocalDescription(offer);
+
+
+
+    await supabase
+      .from("calls")
+      .update({
+
+        offer:offer
+
+      })
+      .eq(
+        "id",
+        data.id
+      );
+
+
+
+    setStatus(
+      "Calling " + contact.name
+    );
+
 
   }
 
 
 
-  useEffect(()=>{
-
-    startCall();
-
-  },[]);
 
 
+useEffect(()=>{
 
-  useEffect(()=>{
-
-    if(!callId) return;
-
-
-    const channel = supabase
-      .channel("call-status-" + callId)
-      .on(
-        "postgres_changes",
-        {
-          event:"UPDATE",
-          schema:"public",
-          table:"calls",
-          filter:`id=eq.${callId}`
-        },
-        (payload)=>{
-
-          const call:any = payload.new;
+  startCall();
 
 
-          if(call.status === "accepted"){
-
-            setStatus("Connected");
-
-          }
-
-
-          if(call.status === "rejected"){
-
-            setStatus("Call declined");
-
-          }
-
-        }
-      )
-      .subscribe();
-
-
-    return ()=>{
-
-      supabase.removeChannel(channel);
-
-    };
-
-
-  },[callId]);
+},[]);
 
 
 
-  return(
-    <div
-      style={{
-        height:"100vh",
-        background:"#111",
-        color:"#fff",
-        display:"flex",
-        flexDirection:"column",
-        justifyContent:"center",
-        alignItems:"center"
-      }}
-    >
-
-      <h2>📞 FeriLine Call</h2>
-
-      <p>{status}</p>
 
 
-      <button
-        onClick={onBack}
-        style={{
-          width:"120px",
-          height:"50px"
-        }}
-      >
-        End call
-      </button>
+useEffect(()=>{
 
-    </div>
-  );
+if(!callId) return;
+
+
+
+const channel = supabase
+.channel("answer-"+callId)
+
+.on(
+"postgres_changes",
+{
+event:"UPDATE",
+schema:"public",
+table:"calls",
+filter:`id=eq.${callId}`
+},
+async(payload)=>{
+
+
+const call:any = payload.new;
+
+
+
+if(call.answer && peer.current){
+
+ await peer.current.setRemoteDescription(
+  call.answer
+ );
+
+
+ setStatus("Connected");
+
+
+}
+
+
+
+if(call.status==="rejected"){
+
+ setStatus("Call declined");
+
+}
+
+
+
+}
+
+)
+
+.subscribe();
+
+
+
+
+const iceChannel = supabase
+.channel("ice-"+callId)
+
+.on(
+"postgres_changes",
+{
+event:"INSERT",
+schema:"public",
+table:"call_ice_candidates",
+filter:`call_id=eq.${callId}`
+},
+async(payload)=>{
+
+
+const item:any = payload.new;
+
+
+if(
+item.user_id !== currentUser.id &&
+peer.current
+){
+
+ await peer.current.addIceCandidate(
+  item.candidate
+ );
+
+}
+
+
+
+}
+
+)
+
+.subscribe();
+
+
+
+
+return ()=>{
+
+supabase.removeChannel(channel);
+
+supabase.removeChannel(iceChannel);
+
+};
+
+
+
+},[callId]);
+
+
+
+
+
+return (
+
+<div
+style={{
+height:"100vh",
+background:"#111",
+color:"#fff",
+display:"flex",
+flexDirection:"column",
+justifyContent:"center",
+alignItems:"center"
+}}
+>
+
+<h2>
+📞 FeriLine Call
+</h2>
+
+
+<p>
+{status}
+</p>
+
+
+<audio
+ref={audioRef}
+autoPlay
+/>
+
+
+<button
+onClick={onBack}
+style={{
+width:"120px",
+height:"50px"
+}}
+>
+End call
+</button>
+
+
+</div>
+
+);
+
 
 }
