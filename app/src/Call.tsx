@@ -188,7 +188,7 @@ if(call.answer && peer.current){
 
 
 }
-
+console.log("CALL UPDATE:", call);
 
 
 if(call.status==="rejected"){
