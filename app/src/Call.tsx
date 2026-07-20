@@ -297,7 +297,32 @@ autoPlay
 
 
 <button
-onClick={onBack}
+onClick={async()=>{
+
+  if(callId){
+
+    await supabase
+      .from("calls")
+      .update({
+        status:"ended"
+      })
+      .eq("id", callId);
+
+  }
+
+
+  if(localStream.current){
+
+    localStream.current
+      .getTracks()
+      .forEach(track=>track.stop());
+
+  }
+
+
+  onBack();
+
+}}
 style={{
 width:"120px",
 height:"50px"
