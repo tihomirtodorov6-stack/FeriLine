@@ -199,11 +199,13 @@ const callChannel = supabase
   .subscribe();
     return ()=>{
 
-      clearInterval(timer);
+  clearInterval(timer);
 
-      supabase.removeChannel(channel);
+  supabase.removeChannel(channel);
 
-    };
+  supabase.removeChannel(callChannel);
+
+};
 
 
   },[]);
