@@ -246,17 +246,17 @@ if(incomingCall){
 
 
   <button
-  onClick={()=>{
+  onClick={async()=>{
+
+    await supabase
+      .from("calls")
+      .update({
+        status:"rejected"
+      })
+      .eq("id", incomingCall.id);
+
     setIncomingCall(null);
-  }}
-  style={{
-    width:"150px",
-    height:"150px",
-    borderRadius:"50%",
-    background:"red",
-    color:"white",
-    fontSize:"22px",
-    border:"none"
+
   }}
 >
   Decline
