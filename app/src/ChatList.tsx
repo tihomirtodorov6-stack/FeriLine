@@ -226,14 +226,24 @@ if(incomingCall){
       </h3>
 
 
-      <button
-        onClick={()=>{
-          setIncomingCall(null);
-          setSelectedContact(incomingCall.caller);
-        }}
-      >
-        Accept
-      </button>
+  <button
+  onClick={()=>{
+    setIncomingCall(null);
+    setSelectedContact(incomingCall.caller);
+  }}
+  style={{
+    width:"150px",
+    height:"150px",
+    borderRadius:"50%",
+    background:"green",
+    color:"white",
+    fontSize:"22px",
+    margin:"20px",
+    border:"none"
+  }}
+>
+  Accept
+</button>
 
 
       <button
