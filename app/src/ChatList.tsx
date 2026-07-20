@@ -38,7 +38,9 @@ const [incomingCall, setIncomingCall] = useState<any>(null);
       async (payload) => {
 
         const call = payload.new;
-
+if(call.status !== "ringing" && !call.offer){
+  return;
+}
 
         const { data } = await supabase
           .from("users")
