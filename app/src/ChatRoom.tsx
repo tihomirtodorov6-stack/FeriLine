@@ -371,7 +371,10 @@ await supabase
     incomingCall.id
   );
 
-  setIncomingCall(null);
+  setInco
+
+ setIncomingCall(null);
+setCalling(true);
 
 }
 if(incomingCall){
