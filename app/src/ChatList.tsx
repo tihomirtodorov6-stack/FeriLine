@@ -309,7 +309,7 @@ console.log("REMOTE OFFER SET");
       .update({
         answer: answer,
         status:"accepted"
-      })
+      })console.log("CALL ACCEPTED");
       .eq(
         "id",
         incomingCall.id
