@@ -170,7 +170,7 @@ if(!callId) return;
 
 
 const channel = supabase
-.channel("answer-"+callId)
+.channel("call-"+callId)
 
 .on(
 "postgres_changes",
