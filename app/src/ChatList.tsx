@@ -317,11 +317,7 @@ console.log("REMOTE OFFER SET");
 
 console.log("CALL ACCEPTED");
 
-console.log("CALL ACCEPTED");
-      .eq(
-        "id",
-        incomingCall.id
-      );
+
 
 
     setIncomingCall(null);
