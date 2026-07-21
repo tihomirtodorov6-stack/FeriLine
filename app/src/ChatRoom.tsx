@@ -440,11 +440,12 @@ if (calling) {
   return (
     <Call
       contact={otherUser}
+      mode="caller"
       onBack={() => setCalling(false)}
     />
   );
 }
-  return (
+  
 
     <div className="chat-room">
 
