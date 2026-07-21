@@ -387,19 +387,8 @@ if(incomingCall){
   
 
 
-    <button
-  onClick={async()=>{
-
-    await supabase
-      .from("calls")
-      .update({
-        status:"accepted"
-      })
-      .eq("id", incomingCall.id);
-
-    setIncomingCall(null);
-
-  }}
+  <button
+  onClick={acceptCall}
   style={{
     width:"150px",
     height:"150px",
