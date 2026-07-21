@@ -365,6 +365,7 @@ async function acceptCall(){
 
 
  setCalling(true);
+console.log("ACCEPTED - OPEN CALL SCREEN");
 setIncomingCall(null);
 
 }
