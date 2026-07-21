@@ -445,7 +445,7 @@ if (calling) {
     />
   );
 }
-  
+  return (
 
     <div className="chat-room">
 
