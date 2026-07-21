@@ -192,10 +192,10 @@ const callChannel = supabase
 
       const call:any = payload.new;
 
-      if(call.status === "ringing"){
-        console.log("INCOMING CALL", call);
-        setIncomingCall(call);
-      }
+    if(call.status === "ringing" && !calling){
+  console.log("INCOMING CALL", call);
+  setIncomingCall(call);
+}
 
     }
   )
