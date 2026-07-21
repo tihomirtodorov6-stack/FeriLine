@@ -305,11 +305,17 @@ console.log("REMOTE OFFER SET");
 
 
     await supabase
-      .from("calls")
-      .update({
-        answer: answer,
-        status:"accepted"
-      })console.log("CALL ACCEPTED");
+  .from("calls")
+  .update({
+    answer: answer,
+    status:"accepted"
+  })
+  .eq(
+    "id",
+    incomingCall.id
+  );
+
+console.log("CALL ACCEPTED");
       .eq(
         "id",
         incomingCall.id
