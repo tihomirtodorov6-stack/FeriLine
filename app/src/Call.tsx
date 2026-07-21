@@ -209,7 +209,19 @@ if(call.status==="rejected"){
  setStatus("Call declined");
 
 }
+if(call.status==="rejected"){
 
+  setStatus("Call declined");
+
+  if(localStream.current){
+    localStream.current
+      .getTracks()
+      .forEach(track=>track.stop());
+  }
+
+  onBack();
+
+}
 
 
 }
