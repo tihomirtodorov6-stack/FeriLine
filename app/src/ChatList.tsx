@@ -37,7 +37,9 @@ const [incomingCall, setIncomingCall] = useState<any>(null);
       },
       async (payload) => {
 
-        const call = payload.new;if(call.status === "ended"){
+        const call = payload.new;
+
+if(call.status === "ended"){
   setIncomingCall(null);
   return;
 }
