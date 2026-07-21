@@ -93,17 +93,24 @@ export default function Call({ contact, onBack }: any) {
 
       if(event.candidate){
 
-        await supabase
-          .from("call_ice_candidates")
-          .insert({
+  const { error } = await supabase
+  .from("call_ice_candidates")
+  .insert({
 
-            call_id:data.id,
+    call_id:data.id,
 
-            user_id:currentUser.id,
+    user_id:currentUser.id,
 
-            candidate:event.candidate
+    candidate:event.candidate
 
-          });
+  });
+
+if(error){
+  console.log("ICE ERROR", error);
+}
+else{
+  console.log("ICE SAVED");
+}
 
       }
 
