@@ -373,8 +373,8 @@ await supabase
 
 
 
- setIncomingCall(null);
-setCalling(true);
+ setCalling(true);
+setIncomingCall(null);
 
 }
 if(incomingCall){
