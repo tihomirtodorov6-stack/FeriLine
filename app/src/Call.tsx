@@ -216,11 +216,7 @@ if(call.answer && peer.current){
 
 
 
-if(call.status==="rejected"){
 
- setStatus("Call declined");
-
-}
 if(call.status==="rejected"){
 
   setStatus("Call declined");
