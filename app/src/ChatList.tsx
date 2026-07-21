@@ -304,7 +304,7 @@ console.log("REMOTE OFFER SET");
 
 
 
-    await supabase
+  await supabase
   .from("calls")
   .update({
     answer: answer,
@@ -314,6 +314,8 @@ console.log("REMOTE OFFER SET");
     "id",
     incomingCall.id
   );
+
+console.log("CALL ACCEPTED");
 
 console.log("CALL ACCEPTED");
       .eq(
