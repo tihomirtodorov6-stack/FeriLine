@@ -360,16 +360,7 @@ async function acceptCall(){
       "id",
       incomingCall.id
     );
-await supabase
-  .from("calls")
-  .update({
-    status:"accepted",
-    answer:answer
-  })
-  .eq(
-    "id",
-    incomingCall.id
-  );
+
 
 
 
