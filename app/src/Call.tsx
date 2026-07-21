@@ -161,7 +161,10 @@ useEffect(()=>{
 
 
 useEffect(()=>{
-
+if(mode === "receiver"){
+  setStatus("Connected");
+  return;
+}
 if(!callId) return;
 
 
