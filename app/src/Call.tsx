@@ -192,7 +192,19 @@ if(call.status==="accepted"){
  setStatus("Connected");
 
 }
+if(call.status==="ended"){
 
+  setStatus("Call ended");
+
+  if(localStream.current){
+    localStream.current
+      .getTracks()
+      .forEach(track=>track.stop());
+  }
+
+  onBack();
+
+}
 
 if(call.answer && peer.current){
 
