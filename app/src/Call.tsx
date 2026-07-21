@@ -38,7 +38,7 @@ export default function Call({ contact, onBack }: any) {
         }
       ]
     });
-
+console.log("PEER CREATED");
 
     peer.current = pc;
 
