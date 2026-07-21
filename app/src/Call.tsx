@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 
-export default function Call({ contact, onBack }: any) {
+export default function Call({ contact, onBack, mode, callData }: any) {
 
   const [status, setStatus] = useState("Starting call...");
   const [callId, setCallId] = useState<number | null>(null);
