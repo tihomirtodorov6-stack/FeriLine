@@ -439,7 +439,7 @@ if (calling) {
   return (
     <Call
       contact={otherUser}
-      mode="caller"
+      mode="receiver"
       onBack={() => setCalling(false)}
     />
   );
