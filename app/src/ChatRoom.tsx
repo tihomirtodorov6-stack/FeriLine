@@ -9,7 +9,9 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   const [online, setOnline] = useState(false);
 const [calling, setCalling] = useState(false);const [incomingCall, setIncomingCall] = useState<any>(null);
   const bottomRef = useRef<any>(null);
-
+const callPeer = useRef<RTCPeerConnection | null>(null);
+const callStream = useRef<MediaStream | null>(null);
+const callAudio = useRef<HTMLAudioElement | null>(null);
   const currentUser = JSON.parse(
     localStorage.getItem("ferilineUser") || "{}"
   );
