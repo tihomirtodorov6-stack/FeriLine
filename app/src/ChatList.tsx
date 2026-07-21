@@ -295,7 +295,7 @@ if(incomingCall){
     await pc.setRemoteDescription(
       incomingCall.offer
     );
-
+console.log("REMOTE OFFER SET");
 
     const answer = await pc.createAnswer();
 
