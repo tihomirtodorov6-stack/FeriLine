@@ -234,7 +234,7 @@ if(incomingCall){
 
 
   <button
-  onClick={async()=>{
+  onClick={async()=>{setIncomingCall(null);
 
     const currentUser = JSON.parse(
       localStorage.getItem("ferilineUser") || "{}"
