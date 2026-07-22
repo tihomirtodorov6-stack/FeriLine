@@ -308,6 +308,8 @@ if(incomingCall){
 
   <button
   onClick={()=>{
+  setActiveCall(incomingCall);
+  setIncomingCall(null);
   setCalling(true);
 }}
   style={{
