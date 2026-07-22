@@ -363,6 +363,7 @@ if (calling) {
       callData={activeCall}
       onBack={()=>{
         setCalling(false);
+        setIncomingCall(null);
         setActiveCall(null);
       }}
     />
