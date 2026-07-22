@@ -279,78 +279,7 @@ const callChannel = supabase
 
 
 
-  callPeer.current = pc;
 
-
-  stream.getTracks().forEach(track=>{
-    pc.addTrack(track, stream);
-  });
-
-
-  pc.ontrack = (event)=>{
-
-    if(callAudio.current){
-
-      callAudio.current.srcObject =
-        event.streams[0];
-
-    }
-
-  };
-
-
-  pc.onicecandidate = async(event)=>{
-
-    if(event.candidate){
-
-      await supabase
-        .from("call_ice_candidates")
-        .insert({
-
-          call_id: incomingCall.id,
-
-          user_id: currentUser.id,
-
-          candidate:event.candidate
-
-        });
-
-    }
-
-  };
-
-
-  await pc.setRemoteDescription(
-    incomingCall.offer
-  );
-
-
-  const answer = await pc.createAnswer();
-
-  await pc.setLocalDescription(answer);
-
-
-  await supabase
-    .from("calls")
-    .update({
-
-      status:"accepted",
-
-      answer:answer
-
-    })
-    .eq(
-      "id",
-      incomingCall.id
-    );
-
-
-
-
- console.log("CALL ACCEPTED");
-setIncomingCall(null);
-
-}
 if(incomingCall){
 
   return(
