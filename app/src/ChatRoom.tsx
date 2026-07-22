@@ -308,6 +308,7 @@ if(incomingCall){
 
   <button
   onClick={()=>{
+  setAcceptingCall(true);
   setActiveCall(incomingCall);
   setIncomingCall(null);
   setCalling(true);
