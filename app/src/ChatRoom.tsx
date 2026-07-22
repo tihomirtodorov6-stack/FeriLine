@@ -11,7 +11,7 @@ const [online, setOnline] = useState(false);
 const [calling, setCalling] = useState(false);
 const [incomingCall, setIncomingCall] = useState<any>(null);
 const [activeCall, setActiveCall] = useState<any>(null);
-
+const [acceptingCall, setAcceptingCall] = useState(false);
 const bottomRef = useRef<any>(null);
 
   const currentUser = JSON.parse(
