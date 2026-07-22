@@ -3,78 +3,53 @@ import { supabase } from "./supabase";
 import { playMessageSound } from "./sound";
 import Call from "./Call";
 
-
 export default function ChatRoom({ name, contact, onBack }: any) {
-
 
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [online, setOnline] = useState(false);
 
-
-  const [callMode, setCallMode] = useState<any>(null);
-  const [callData, setCallData] = useState<any>(null);
-
-
+  const [calling, setCalling] = useState(false);
+  const [incomingCall, setIncomingCall] = useState<any>(null);
 
   const bottomRef = useRef<any>(null);
-
-
 
   const currentUser = JSON.parse(
     localStorage.getItem("ferilineUser") || "{}"
   );
 
 
-
   const otherUser = contact || {
-
     id:null,
     name:name
-
   };
-
-
 
 
 
   async function updateMyStatus(){
 
-
-    if(!currentUser.id)
-      return;
-
+    if(!currentUser.id) return;
 
 
     await supabase
       .from("user_status")
       .upsert({
 
-        user_id:
-        currentUser.id,
-
+        user_id: currentUser.id,
 
         online:true,
 
-
-        last_active:
-        new Date()
+        last_active:new Date()
 
       });
-
 
   }
 
 
 
-
-
   async function checkFriendStatus(){
 
-
-    if(!otherUser.id)
-      return;
-
+    if(!otherUser.id) return;
 
 
     const {data}=await supabase
@@ -88,9 +63,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
     if(data?.last_active){
-
 
       const last =
         new Date(
@@ -98,21 +71,16 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         ).getTime();
 
 
-
       const now =
         new Date().getTime();
 
 
-
       setOnline(
-
         now - last < 60000
-
       );
 
 
-    }
-    else{
+    } else {
 
 
       setOnline(false);
@@ -120,16 +88,11 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
     }
 
-
   }
 
 
 
-
-
-
   async function loadHistory(){
-
 
     const {data}=await supabase
       .from("messages")
@@ -140,31 +103,22 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
       )
       .order(
-
         "created_at",
-
         {
           ascending:true
         }
-
       );
-
 
 
     setMessages(
       data || []
     );
 
-
   }  useEffect(()=>{
 
-
     if(!currentUser.id || !otherUser.id){
-
       return;
-
     }
-
 
 
     loadHistory();
@@ -175,44 +129,32 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
     const timer=setInterval(()=>{
-
 
       updateMyStatus();
 
       checkFriendStatus();
-
 
     },10000);
 
 
 
 
-
-
-
-    const messageChannel=supabase
+    const channel=supabase
       .channel(
-
         "chat-" +
         currentUser.id +
         "-" +
         otherUser.id
-
       )
       .on(
 
         "postgres_changes",
 
         {
-
           event:"INSERT",
-
           schema:"public",
-
           table:"messages"
-
         },
 
 
@@ -221,7 +163,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
           const msg:any =
             payload.new;
-
 
 
 
@@ -238,9 +179,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
           ){
 
 
-
             setMessages(old=>{
-
 
 
               if(
@@ -255,8 +194,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
-
               if(
                 msg.sender_id===otherUser.id
               ){
@@ -267,19 +204,13 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
-
               return [
-
                 ...old,
-
                 msg
-
               ];
 
 
             });
-
 
 
           }
@@ -288,12 +219,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         }
 
       )
-
       .subscribe();
-
-
-
-
 
 
 
@@ -301,29 +227,18 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
     const callChannel=supabase
       .channel(
-
-        "incoming-calls-" +
-        currentUser.id
-
+        "calls-" + currentUser.id
       )
-
       .on(
 
         "postgres_changes",
 
         {
-
           event:"INSERT",
-
           schema:"public",
-
           table:"calls",
-
           filter:
-
           `receiver_id=eq.${currentUser.id}`
-
-
         },
 
 
@@ -335,36 +250,28 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
           if(
             call.status==="ringing"
           ){
 
-
-
-            setCallData(
+            console.log(
+              "INCOMING CALL",
               call
             );
 
 
-
-            setCallMode(
-              "receiver"
+            setIncomingCall(
+              call
             );
 
 
           }
 
 
-
         }
 
       )
-
       .subscribe();
-
-
-
 
 
 
@@ -375,25 +282,17 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       clearInterval(timer);
 
 
-
       supabase.removeChannel(
-
-        messageChannel
-
+        channel
       );
 
 
-
       supabase.removeChannel(
-
         callChannel
-
       );
-
 
 
     };
-
 
 
 
@@ -403,19 +302,11 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
-
-
-
-
   async function sendMessage(){
-
 
 
     if(!text.trim())
       return;
-
-
 
 
 
@@ -439,11 +330,8 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         }
 
       ])
-
       .select()
-
       .single();
-
 
 
 
@@ -458,11 +346,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
-
     setText("");
-
-
 
 
 
@@ -475,9 +359,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     ]);
 
 
-
   }
-
 
 
 
@@ -493,34 +375,139 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     });
 
 
-  },[messages]);  if(callMode){
+  },[messages]);  if(incomingCall){
 
+    return(
 
-    return (
+      <div
 
-      <Call
+        style={{
 
-        contact={otherUser}
+          height:"100vh",
 
+          background:"#111",
 
-        mode={callMode}
+          color:"#fff",
 
+          display:"flex",
 
-        callData={callData}
+          flexDirection:"column",
 
+          justifyContent:"center",
 
-        onBack={()=>{
-
-
-          setCallMode(null);
-
-          setCallData(null);
-
+          alignItems:"center"
 
         }}
 
-      />
+      >
 
+
+        <h2>
+          📞 Incoming call
+        </h2>
+
+
+        <p>
+          Someone is calling you
+        </p>
+
+
+
+        <button
+
+          onClick={()=>{
+
+            setCalling(true);
+
+          }}
+
+          style={{
+
+            width:"150px",
+
+            height:"150px",
+
+            borderRadius:"50%",
+
+            background:"green",
+
+            color:"white",
+
+            fontSize:"22px",
+
+            margin:"20px",
+
+            border:"none"
+
+          }}
+
+        >
+
+          Приеми
+
+        </button>
+
+
+
+
+
+        <button
+
+          onClick={async()=>{
+
+
+            await supabase
+              .from("calls")
+              .update({
+
+                status:"rejected"
+
+              })
+
+              .eq(
+
+                "id",
+
+                incomingCall.id
+
+              );
+
+
+
+            setIncomingCall(null);
+
+
+
+          }}
+
+
+          style={{
+
+            width:"150px",
+
+            height:"150px",
+
+            borderRadius:"50%",
+
+            background:"red",
+
+            color:"white",
+
+            fontSize:"22px",
+
+            border:"none"
+
+          }}
+
+        >
+
+          Откажи
+
+        </button>
+
+
+
+      </div>
 
     );
 
@@ -532,9 +519,40 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
+  if(calling){
 
 
-  return (
+    return(
+
+      <Call
+
+        contact={otherUser}
+
+        mode={
+          incomingCall
+          ? "receiver"
+          : "caller"
+        }
+
+        callData={
+          incomingCall
+        }
+
+
+        onBack={()=>{
+
+          setCalling(false);
+
+          setIncomingCall(null);
+
+        }}
+
+      />
+
+    );
+
+
+  }  return (
 
     <div className="chat-room">
 
@@ -559,31 +577,21 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
-
         <div className="chat-avatar">
-
 
           {
 
             otherUser.name
 
-            ?
+            ? otherUser.name
+              .charAt(0)
+              .toUpperCase()
 
-            otherUser.name
-            .charAt(0)
-            .toUpperCase()
-
-            :
-
-            "F"
+            : "F"
 
           }
 
-
         </div>
-
-
 
 
 
@@ -599,7 +607,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
           <span className="online-status">
 
 
@@ -607,14 +614,9 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
               online
 
-              ?
+              ? "🟢 Online"
 
-              "🟢 Online"
-
-              :
-
-              "⚪ Offline"
-
+              : "⚪ Offline"
 
             }
 
@@ -622,12 +624,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
           </span>
 
 
-
         </div>
-
-
-
-
 
 
 
@@ -637,17 +634,11 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
           <button
 
-
             onClick={()=>{
 
-
-              setCallMode(
-                "caller"
-              );
-
+              setCalling(true);
 
             }}
-
 
           >
 
@@ -658,23 +649,26 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
           <button>
-
 
             📷
 
-
           </button>
-
 
 
         </div>
 
 
 
+      </div>
 
-      </div>      <div className="messages">
+
+
+
+
+
+
+      <div className="messages">
 
 
         {
@@ -684,26 +678,18 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
             <div
 
-
               key={msg.id}
-
 
 
               className={
 
-
                 msg.sender_id===currentUser.id
-
 
                 ? "message mine"
 
-
                 : "message"
 
-
-
               }
-
 
             >
 
@@ -714,13 +700,11 @@ export default function ChatRoom({ name, contact, onBack }: any) {
             </div>
 
 
-
           ))
 
 
 
         }
-
 
 
 
@@ -737,10 +721,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
       <div className="message-input">
-
-
 
 
 
@@ -753,31 +734,23 @@ export default function ChatRoom({ name, contact, onBack }: any) {
           placeholder="Message..."
 
 
-          onChange={(e)=>{
-
+          onChange={(e)=>
 
             setText(
               e.target.value
-            );
+            )
+
+          }
 
 
-          }}
 
+          onKeyDown={(e)=>
 
+            e.key==="Enter" &&
+            sendMessage()
 
-          onKeyDown={(e)=>{
+          }
 
-
-            if(e.key==="Enter"){
-
-
-              sendMessage();
-
-
-            }
-
-
-          }}
 
 
         />
@@ -786,25 +759,15 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
-
-
         <button
-
 
           onClick={sendMessage}
 
-
         >
-
 
           Send
 
-
         </button>
-
-
-
 
 
 
@@ -812,16 +775,10 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
 
 
-
-
-
-
     </div>
 
 
-
   );
-
 
 
 }
