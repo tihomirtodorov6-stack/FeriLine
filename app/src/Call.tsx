@@ -1,52 +1,52 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 
-export default function Call({ contact, onBack, mode, callData }: any) {
+export default function Call({
+  contact,
+  onBack,
+  mode,
+  callData
+}: any) {
 
-  const [status, setStatus] = useState("Starting call...");
-  const [callId, setCallId] = useState<number | null>(null);
+  const [status, setStatus] = useState(
+    mode === "caller"
+      ? "Starting call..."
+      : "Incoming call..."
+  );
+
+  const [callId, setCallId] = useState<number | null>(
+    callData?.id || null
+  );
 
   const peer = useRef<RTCPeerConnection | null>(null);
+
   const localStream = useRef<MediaStream | null>(null);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const currentUser = JSON.parse(
-    localStorage.getItem("ferilineUser") || "{}"
+  const currentUser = useRef(
+    JSON.parse(
+      localStorage.getItem("ferilineUser") || "{}"
+    )
   );
 
 
-  async function startCall(){
-
-    if(!currentUser.id || !contact.id){
-      setStatus("Missing user");
-      return;
-    }
-
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio:true
-    });
-
-
-    localStream.current = stream;
-
+  function createPeerConnection(
+    id:number
+  ){
 
     const pc = new RTCPeerConnection({
+
       iceServers:[
+
         {
-          urls:"stun:stun.l.google.com:19302"
+          urls:
+          "stun:stun.l.google.com:19302"
         }
+
       ]
+
     });
-console.log("PEER CREATED");
-
-    peer.current = pc;
-
-
-    stream.getTracks().forEach(track=>{
-      pc.addTrack(track,stream);
-    });
-
 
 
     pc.ontrack = (event)=>{
@@ -61,81 +61,197 @@ console.log("PEER CREATED");
     };
 
 
-
-    const { data, error } = await supabase
-      .from("calls")
-      .insert([
-        {
-          caller_id: currentUser.id,
-          receiver_id: contact.id,
-          status:"ringing"
-        }
-      ])
-      .select()
-      .single();
-
-
-
-    if(error){
-
-      console.log(error);
-      setStatus("Call error");
-      return;
-
-    }
-
-
-    setCallId(data.id);
-
-
-
     pc.onicecandidate = async(event)=>{
 
-      if(event.candidate){
+      if(
+        event.candidate &&
+        id
+      ){
 
-  const { error } = await supabase
-  .from("call_ice_candidates")
-  .insert({
+        const { error } =
+          await supabase
+          .from("call_ice_candidates")
+          .insert({
 
-    call_id:data.id,
+            call_id:id,
 
-    user_id:currentUser.id,
+            user_id:
+            currentUser.current.id,
 
-    candidate:event.candidate
+            candidate:
+            event.candidate.toJSON()
 
-  });
+          });
 
-if(error){
-  console.log("ICE ERROR", error);
-}
-else{
-  console.log("ICE SAVED");
-}
+
+        if(error){
+
+          console.log(
+            "ICE SAVE ERROR",
+            error
+          );
+
+        }
 
       }
 
     };
 
 
-
-    const offer = await pc.createOffer();
-
-    await pc.setLocalDescription(offer);
+    peer.current = pc;
 
 
+    return pc;
 
-    await supabase
+  }
+
+
+
+  async function getMicrophone(){
+
+    try{
+
+      const stream =
+        await navigator.mediaDevices
+        .getUserMedia({
+
+          audio:true
+
+        });
+
+
+      localStream.current =
+        stream;
+
+
+      return stream;
+
+
+    }
+    catch(error){
+
+      console.log(
+        "MIC ERROR",
+        error
+      );
+
+
+      setStatus(
+        "Microphone permission denied"
+      );
+
+
+      return null;
+
+    }
+
+  }
+
+
+
+  async function startCaller(){
+
+    if(
+      !currentUser.current.id ||
+      !contact?.id
+    ){
+
+      setStatus(
+        "Missing user"
+      );
+
+      return;
+
+    }
+
+
+    const stream =
+      await getMicrophone();
+
+
+    if(!stream)
+      return;
+
+
+    const { data, error } =
+      await supabase
       .from("calls")
-      .update({
+      .insert([
 
-        offer:offer
+        {
 
-      })
-      .eq(
-        "id",
+          caller_id:
+          currentUser.current.id,
+
+          receiver_id:
+          contact.id,
+
+          status:
+          "ringing"
+
+        }
+
+      ])
+      .select()
+      .single();
+
+
+    if(error){
+
+      console.log(error);
+
+      setStatus(
+        "Call error"
+      );
+
+      return;
+
+    }
+
+
+    setCallId(
+      data.id
+    );
+
+
+    const pc =
+      createPeerConnection(
         data.id
       );
 
+
+    stream
+    .getTracks()
+    .forEach(track=>{
+
+      pc.addTrack(
+        track,
+        stream
+      );
+
+    });
+
+
+    const offer =
+      await pc.createOffer();
+
+
+    await pc.setLocalDescription(
+      offer
+    );
+
+
+    await supabase
+    .from("calls")
+    .update({
+
+      offer:offer
+
+    })
+    .eq(
+      "id",
+      data.id
+    );
 
 
     setStatus(
@@ -143,229 +259,550 @@ else{
     );
 
 
-  }
+  }  async function startReceiver(){
 
+    if(
+      !callData ||
+      !callData.offer
+    ){
 
+      setStatus(
+        "Missing call data"
+      );
 
+      return;
 
+    }
 
-useEffect(() => {
 
-  if (mode === "caller") {
-    startCall();
-  }
+    const stream =
+      await getMicrophone();
 
-}, []);
 
+    if(!stream)
+      return;
 
 
 
+    const pc =
+      createPeerConnection(
+        callData.id
+      );
 
-useEffect(()=>{
-if(mode === "receiver"){
-  setStatus("Connected");
-  return;
-}
-if(!callId) return;
 
 
+    stream
+    .getTracks()
+    .forEach(track=>{
 
-const channel = supabase
-.channel("call-"+callId)
+      pc.addTrack(
+        track,
+        stream
+      );
 
-.on(
-"postgres_changes",
-{
-event:"UPDATE",
-schema:"public",
-table:"calls",
-filter:`id=eq.${callId}`
-},
-async(payload)=>{
+    });
 
 
-const call:any = payload.new;
 
+    await pc.setRemoteDescription(
+      callData.offer
+    );
 
 
-if(call.status==="accepted"){
 
- setStatus("Connected");
+    const answer =
+      await pc.createAnswer();
 
-}
-if(call.status==="ended"){
 
-  setStatus("Call ended");
 
-  if(localStream.current){
-    localStream.current
-      .getTracks()
-      .forEach(track=>track.stop());
-  }
+    await pc.setLocalDescription(
+      answer
+    );
 
-  onBack();
 
-}
-
-if(call.answer && peer.current){
-
- await peer.current.setRemoteDescription(
-  call.answer
- );
-
-}
-
-
-
-
-if(call.status==="rejected"){
-
-  setStatus("Call declined");
-
-  if(localStream.current){
-    localStream.current
-      .getTracks()
-      .forEach(track=>track.stop());
-  }
-
-  onBack();
-
-}
-
-
-}
-
-)
-
-.subscribe();
-
-
-
-
-const iceChannel = supabase
-.channel("ice-"+callId)
-
-.on(
-"postgres_changes",
-{
-event:"INSERT",
-schema:"public",
-table:"call_ice_candidates",
-filter:`call_id=eq.${callId}`
-},
-async(payload)=>{
-
-
-const item:any = payload.new;
-
-
-if(
-item.user_id !== currentUser.id &&
-peer.current
-){
-
- await peer.current.addIceCandidate(
-  item.candidate
- );
-
-}
-
-
-
-}
-
-)
-
-.subscribe();
-
-
-
-
-return ()=>{
-
-supabase.removeChannel(channel);
-
-supabase.removeChannel(iceChannel);
-
-};
-
-
-
-},[callId]);
-
-
-
-
-
-return (
-
-<div
-style={{
-height:"100vh",
-background:"#111",
-color:"#fff",
-display:"flex",
-flexDirection:"column",
-justifyContent:"center",
-alignItems:"center"
-}}
->
-
-<h2>
-📞 FeriLine Call
-</h2>
-
-
-<p>
-{status}
-</p>
-
-
-<audio
-ref={audioRef}
-autoPlay
-/>
-
-
-<button
-onClick={async()=>{
-
-  if(callId){
 
     await supabase
+    .from("calls")
+    .update({
+
+      answer:answer,
+
+      status:"accepted"
+
+    })
+    .eq(
+      "id",
+      callData.id
+    );
+
+
+
+    setStatus(
+      "Connected"
+    );
+
+  }
+
+
+
+
+
+  async function listenForCallUpdates(){
+
+    if(!callId)
+      return;
+
+
+
+    const channel =
+      supabase
+      .channel(
+        "call-update-" + callId
+      )
+      .on(
+
+        "postgres_changes",
+
+        {
+
+          event:"UPDATE",
+
+          schema:"public",
+
+          table:"calls",
+
+          filter:
+          `id=eq.${callId}`
+
+        },
+
+        async(payload)=>{
+
+
+          const call:any =
+            payload.new;
+
+
+
+          if(
+            call.answer &&
+            peer.current &&
+            mode==="caller"
+          ){
+
+            try{
+
+              await peer.current
+              .setRemoteDescription(
+                call.answer
+              );
+
+
+              setStatus(
+                "Connected"
+              );
+
+            }
+            catch(error){
+
+              console.log(
+                "ANSWER ERROR",
+                error
+              );
+
+            }
+
+          }
+
+
+
+          if(
+            call.status==="ended"
+          ){
+
+            setStatus(
+              "Call ended"
+            );
+
+
+            setTimeout(()=>{
+
+              onBack();
+
+            },1000);
+
+          }
+
+
+
+          if(
+            call.status==="rejected"
+          ){
+
+            setStatus(
+              "Call declined"
+            );
+
+
+            setTimeout(()=>{
+
+              onBack();
+
+            },1000);
+
+          }
+
+
+        }
+
+      )
+      .subscribe();
+
+
+
+    return channel;
+
+  }
+
+
+
+
+
+  async function listenForIce(){
+
+    if(!callId)
+      return;
+
+
+
+    const channel =
+      supabase
+      .channel(
+        "ice-" + callId
+      )
+      .on(
+
+        "postgres_changes",
+
+        {
+
+          event:"INSERT",
+
+          schema:"public",
+
+          table:"call_ice_candidates",
+
+          filter:
+          `call_id=eq.${callId}`
+
+        },
+
+        async(payload)=>{
+
+
+          const item:any =
+            payload.new;
+
+
+
+          if(
+            item.user_id !==
+            currentUser.current.id &&
+            peer.current
+          ){
+
+            try{
+
+              await peer.current
+              .addIceCandidate(
+                item.candidate
+              );
+
+            }
+            catch(error){
+
+              console.log(
+                "ICE ADD ERROR",
+                error
+              );
+
+            }
+
+          }
+
+
+        }
+
+      )
+      .subscribe();
+
+
+
+    return channel;
+
+  }  useEffect(()=>{
+
+    let callChannel:any;
+    let iceChannel:any;
+
+
+    async function init(){
+
+      if(mode === "caller"){
+
+        await startCaller();
+
+      }
+
+    }
+
+
+    init();
+
+
+
+    async function setup(){
+
+      if(
+        mode==="receiver" &&
+        callData
+      ){
+
+        setCallId(
+          callData.id
+        );
+
+
+        await startReceiver();
+
+      }
+
+    }
+
+
+    setup();
+
+
+
+    const timer =
+      setInterval(async()=>{
+
+        if(
+          callId
+        ){
+
+          if(!callChannel){
+
+            callChannel =
+              await listenForCallUpdates();
+
+          }
+
+
+          if(!iceChannel){
+
+            iceChannel =
+              await listenForIce();
+
+          }
+
+        }
+
+
+      },500);
+
+
+
+    return ()=>{
+
+
+      clearInterval(timer);
+
+
+
+      if(callChannel){
+
+        supabase
+        .removeChannel(
+          callChannel
+        );
+
+      }
+
+
+
+      if(iceChannel){
+
+        supabase
+        .removeChannel(
+          iceChannel
+        );
+
+      }
+
+
+
+      if(
+        localStream.current
+      ){
+
+        localStream.current
+        .getTracks()
+        .forEach(track=>{
+
+          track.stop();
+
+        });
+
+      }
+
+
+
+      if(
+        peer.current
+      ){
+
+        peer.current.close();
+
+      }
+
+
+    };
+
+
+  },[]);
+
+
+
+
+
+
+  async function endCall(){
+
+    if(callId){
+
+      await supabase
       .from("calls")
       .update({
+
         status:"ended"
+
       })
-      .eq("id", callId);
+      .eq(
+        "id",
+        callId
+      );
 
-  }
+    }
 
 
-  if(localStream.current){
 
-    localStream.current
+    if(
+      localStream.current
+    ){
+
+      localStream.current
       .getTracks()
-      .forEach(track=>track.stop());
+      .forEach(track=>{
+
+        track.stop();
+
+      });
+
+    }
+
+
+
+    if(
+      peer.current
+    ){
+
+      peer.current.close();
+
+    }
+
+
+
+    onBack();
+
 
   }
 
 
-  onBack();
-
-}}
-style={{
-width:"120px",
-height:"50px"
-}}
->
-End call
-</button>
 
 
-</div>
 
-);
+
+  return (
+
+    <div
+
+      style={{
+
+        height:"100vh",
+
+        background:"#111",
+
+        color:"#fff",
+
+        display:"flex",
+
+        flexDirection:"column",
+
+        justifyContent:"center",
+
+        alignItems:"center"
+
+      }}
+
+    >
+
+
+      <h2>
+        📞 FeriLine Call
+      </h2>
+
+
+
+      <p>
+        {status}
+      </p>
+
+
+
+      <audio
+
+        ref={audioRef}
+
+        autoPlay
+
+      />
+
+
+
+      <button
+
+        onClick={endCall}
+
+        style={{
+
+          width:"120px",
+
+          height:"50px"
+
+        }}
+
+      >
+
+        End call
+
+      </button>
+
+
+
+    </div>
+
+  );
 
 
 }
