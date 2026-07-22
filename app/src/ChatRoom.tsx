@@ -359,11 +359,11 @@ if (calling) {
   return (
     <Call
       contact={otherUser}
-      mode={incomingCall ? "receiver" : "caller"}
-      callData={incomingCall}
+      mode={activeCall ? "receiver" : "caller"}
+      callData={activeCall}
       onBack={()=>{
         setCalling(false);
-        setIncomingCall(null);
+        setActiveCall(null);
       }}
     />
   );
