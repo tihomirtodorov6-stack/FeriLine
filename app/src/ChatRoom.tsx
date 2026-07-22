@@ -4,58 +4,40 @@ import { supabase } from "./supabase";
 export default function ChatRoom({ name, contact, onBack }: any) {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
-  const [debug, setDebug] = useState("");
   const bottomRef = useRef<any>(null);
 
   const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
-
-  // Държа otherUser в state за да можем да го оправим ако ID-то е null
   const [otherUser, setOtherUser] = useState(contact || { id: null, name: name });
 
   useEffect(() => {
-    // Ако нямаме ID, търсим го по име от базата
     async function findOtherId() {
       if (!otherUser.id && otherUser.name) {
-        setDebug("Търся ID за име: " + otherUser.name);
-        const { data, error } = await supabase
-         .from("users") // Ако таблицата ти е "profiles" - смени го тук!
+        const { data } = await supabase
+         .from("users")
          .select("id, name")
          .eq("name", otherUser.name)
          .single();
-
-        if (data) {
-          setDebug("Намерих ID: " + data.id);
-          setOtherUser(data);
-        } else {
-          setDebug("Не намерих потребител с име " + otherUser.name + " Грешка: " + error?.message);
-        }
+        if (data) setOtherUser(data);
       }
     }
     findOtherId();
   }, [otherUser.name]);
 
   useEffect(() => {
-    if (!currentUser.id ||!otherUser.id) {
-      if (otherUser.id === null) return;
-      setDebug(`Липсва ID! Моят: ${currentUser.id} Другия: ${otherUser.id}`);
-      return;
-    }
-    setDebug(`Зареден чат между ${currentUser.id} и ${otherUser.id}`);
+    if (!currentUser.id ||!otherUser.id) return;
+
     loadHistory();
 
     const channel = supabase
      .channel(`messages-${currentUser.id}-${otherUser.id}`)
      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          const newMessage: any = payload.new;
+          const m: any = payload.new;
           if (
-            (newMessage.sender_id === currentUser.id && newMessage.receiver_id === otherUser.id) ||
-            (newMessage.sender_id === otherUser.id && newMessage.receiver_id === currentUser.id)
+            (m.sender_id === currentUser.id && m.receiver_id === otherUser.id) ||
+            (m.sender_id === otherUser.id && m.receiver_id === currentUser.id)
           ) {
-            setMessages((old) => {
-              if (old.some((m) => m.id === newMessage.id)) return old;
-              return [...old, newMessage];
-            });
+            setMessages((old) => old.some(x => x.id === m.id)? old : [...old, m]);
           }
         }
       )
@@ -66,30 +48,25 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   async function loadHistory() {
     const { data } = await supabase
-     .from("messages").select("*")
+     .from("messages")
+     .select("*")
      .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUser.id}),and(sender_id.eq.${otherUser.id},receiver_id.eq.${currentUser.id})`)
      .order("created_at", { ascending: true });
     setMessages(data || []);
   }
 
   async function sendMessage() {
-    if (!text.trim()) return;
-    if (!otherUser.id) {
-      setDebug("Не мога да пратя - няма ID на другия!");
-      return;
-    }
-    const { data, error } = await supabase.from("messages").insert([{
-      sender_id: currentUser.id,
-      receiver_id: otherUser.id,
-      text: text.trim()
-    }]).select().single();
+    if (!text.trim() ||!otherUser.id) return;
+    const { data } = await supabase
+     .from("messages")
+     .insert([{ sender_id: currentUser.id, receiver_id: otherUser.id, text: text.trim() }])
+     .select()
+     .single();
 
-    if (error) {
-      setDebug("ГРЕШКА при пращане: " + error.message);
-      return;
+    if (data) {
+      setText("");
+      setMessages((old) => [...old, data]);
     }
-    setText("");
-    setMessages((old) => [...old, data]);
   }
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -100,18 +77,22 @@ export default function ChatRoom({ name, contact, onBack }: any) {
         <button className="back-btn" onClick={onBack}>← Back</button>
         <h2>{otherUser.name}</h2>
       </div>
-
-      {debug? <div style={{ background: "#ffdddd", padding: "10px", fontSize: "12px" }}>DEBUG: {debug}</div> : null}
-
       <div className="messages">
         {messages.map((msg) => (
-          <div key={msg.id} className={msg.sender_id === currentUser.id? "message mine" : "message"}>{msg.text}</div>
+          <div key={msg.id} className={msg.sender_id === currentUser.id? "message mine" : "message"}>
+            {msg.text}
+          </div>
         ))}
         <div ref={bottomRef} />
       </div>
-
       <div className="message-input">
-        <input type="text" placeholder="Message..." value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} />
+        <input
+          type="text"
+          placeholder="Message..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+        />
         <button onClick={sendMessage}>Send</button>
       </div>
     </div>
