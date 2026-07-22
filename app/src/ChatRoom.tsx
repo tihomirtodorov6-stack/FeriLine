@@ -276,22 +276,7 @@ const callChannel = supabase
 
 
 
-async function acceptCall(){
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio:true
-  });
-
-  callStream.current = stream;
-
-
-  const pc = new RTCPeerConnection({
-    iceServers:[
-      {
-        urls:"stun:stun.l.google.com:19302"
-      }
-    ]
-  });
 
 
   callPeer.current = pc;
