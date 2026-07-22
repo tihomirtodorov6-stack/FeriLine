@@ -1,784 +1,268 @@
-import React, { useEffect, useState, useRef } from "react";
-import { supabase } from "./supabase";
+1. ChatRoom.tsx - ЦЕЛИЯТ import React, { useEffect, useState, useRef, useMemo } from "react";
+import { supabase } from "./supabase";  all.tsx - ЦЕЛИЯТ - ОПРАВЕН 
 import { playMessageSound } from "./sound";
 import Call from "./Call";
 
-export default function ChatRoom({ name, contact, onBack }: any) {
-
+export default function ChatRoom({ contact, onBack }: any) {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
-  const [online, setOnline] = useState(false);
-
-  const [calling, setCalling] = useState(false);
   const [incomingCall, setIncomingCall] = useState<any>(null);
-
+  const [activeCall, setActiveCall] = useState<any>(null);
   const bottomRef = useRef<any>(null);
 
-  const currentUser = JSON.parse(
-    localStorage.getItem("ferilineUser") || "{}"
-  );
+  const currentUser = useMemo(() => JSON.parse(localStorage.getItem("ferilineUser") || "{}"), []);
+  const otherUser = contact;
+  const roomId = useMemo(() => [currentUser.id, otherUser?.id].sort().join("-"), [currentUser.id, otherUser?.id]);
 
-
-  const otherUser = contact || {
-    id:null,
-    name:name
-  };
-
-
-
-  async function updateMyStatus(){
-
-    if(!currentUser.id) return;
-
-
-    await supabase
-      .from("user_status")
-      .upsert({
-
-        user_id: currentUser.id,
-
-        online:true,
-
-        last_active:new Date()
-
-      });
-
+  async function loadHistory() {
+    const { data } = await supabase.from("messages").select("*")
+     .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUser.id}),and(sender_id.eq.${otherUser.id},receiver_id.eq.${currentUser.id})`)
+     .order("created_at", { ascending: true });
+    setMessages(data || []);
   }
 
-
-
-  async function checkFriendStatus(){
-
-    if(!otherUser.id) return;
-
-
-    const {data}=await supabase
-      .from("user_status")
-      .select("last_active")
-      .eq(
-        "user_id",
-        otherUser.id
-      )
-      .single();
-
-
-
-    if(data?.last_active){
-
-      const last =
-        new Date(
-          data.last_active
-        ).getTime();
-
-
-      const now =
-        new Date().getTime();
-
-
-      setOnline(
-        now - last < 60000
-      );
-
-
-    } else {
-
-
-      setOnline(false);
-
-
-    }
-
-  }
-
-
-
-  async function loadHistory(){
-
-    const {data}=await supabase
-      .from("messages")
-      .select("*")
-      .or(
-
-        `and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUser.id}),and(sender_id.eq.${otherUser.id},receiver_id.eq.${currentUser.id})`
-
-      )
-      .order(
-        "created_at",
-        {
-          ascending:true
-        }
-      );
-
-
-    setMessages(
-      data || []
-    );
-
-  }  useEffect(()=>{
-
-    if(!currentUser.id || !otherUser.id){
-      return;
-    }
-
-
+  useEffect(() => {
+    if (!currentUser.id ||!otherUser?.id) return;
     loadHistory();
 
-    updateMyStatus();
-
-    checkFriendStatus();
-
-
-
-    const timer=setInterval(()=>{
-
-      updateMyStatus();
-
-      checkFriendStatus();
-
-    },10000);
-
-
-
-
-    const channel=supabase
-      .channel(
-        "chat-" +
-        currentUser.id +
-        "-" +
-        otherUser.id
-      )
-      .on(
-
-        "postgres_changes",
-
-        {
-          event:"INSERT",
-          schema:"public",
-          table:"messages"
-        },
-
-
-        (payload)=>{
-
-
-          const msg:any =
-            payload.new;
-
-
-
-          if(
-
-            (msg.sender_id===currentUser.id &&
-             msg.receiver_id===otherUser.id)
-
-            ||
-
-            (msg.sender_id===otherUser.id &&
-             msg.receiver_id===currentUser.id)
-
-          ){
-
-
-            setMessages(old=>{
-
-
-              if(
-                old.some(
-                  x=>x.id===msg.id
-                )
-              ){
-
-                return old;
-
-              }
-
-
-
-              if(
-                msg.sender_id===otherUser.id
-              ){
-
-                playMessageSound();
-
-              }
-
-
-
-              return [
-                ...old,
-                msg
-              ];
-
-
-            });
-
-
-          }
-
-
+    const chatChannel = supabase.channel(`chat-${roomId}`)
+     .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const msg = payload.new as any;
+        if ((msg.sender_id === currentUser.id && msg.receiver_id === otherUser.id) || (msg.sender_id === otherUser.id && msg.receiver_id === currentUser.id)) {
+          setMessages(old => {
+            if (old.some(x => x.id === msg.id)) return old;
+            if (msg.sender_id === otherUser.id) playMessageSound();
+            return [...old, msg];
+          });
         }
+      }).subscribe();
 
-      )
-      .subscribe();
-
-
-
-
-
-    const callChannel=supabase
-      .channel(
-        "calls-" + currentUser.id
-      )
-      .on(
-
-        "postgres_changes",
-
-        {
-          event:"INSERT",
-          schema:"public",
-          table:"calls",
-          filter:
-          `receiver_id=eq.${currentUser.id}`
-        },
-
-
-        (payload)=>{
-
-
-          const call:any =
-            payload.new;
-
-
-
-          if(
-            call.status==="ringing"
-          ){
-
-            console.log(
-              "INCOMING CALL",
-              call
-            );
-
-
-            setIncomingCall(
-              call
-            );
-
-
-          }
-
-
+    const callChannel = supabase.channel(`calls-notify-${currentUser.id}`)
+     .on("postgres_changes", { event: "INSERT", schema: "public", table: "calls", filter: `receiver_id=eq.${currentUser.id}` }, (payload) => {
+        if (payload.new.status === "ringing") setIncomingCall(payload.new);
+      })
+     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "calls", filter: `receiver_id=eq.${currentUser.id}` }, (payload) => {
+        if (payload.new.status === "ended" || payload.new.status === "rejected") {
+          setIncomingCall(null);
+          setActiveCall(null);
         }
+      })
+     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "calls", filter: `caller_id=eq.${currentUser.id}` }, (payload) => {
+        if (payload.new.status === "ended" || payload.new.status === "rejected") {
+          setActiveCall(null);
+        }
+      })
+     .subscribe();
 
-      )
-      .subscribe();
-
-
-
-
-    return ()=>{
-
-
-      clearInterval(timer);
-
-
-      supabase.removeChannel(
-        channel
-      );
-
-
-      supabase.removeChannel(
-        callChannel
-      );
-
-
+    return () => {
+      supabase.removeChannel(chatChannel);
+      supabase.removeChannel(callChannel);
     };
+  }, [roomId]);
 
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
+  async function sendMessage() {
+    if (!text.trim()) return;
+    const { data } = await supabase.from("messages").insert([{ sender_id: currentUser.id, receiver_id: otherUser.id, text: text.trim() }]).select().single();
+    if (data) { setMessages(o => [...o, data]); setText(""); }
+  }
 
-  },[]);
+  // ЕКРАН ВХОДЯЩО ОБАЖДАНЕ
+  if (incomingCall &&!activeCall) {
+    return (
+      <div style={{ height: "100vh", background: "#111", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+        <h2>📞 {otherUser.name} ти звъни</h2>
+        <button onClick={() => { setActiveCall(incomingCall); setIncomingCall(null); }} style={{ width: 150, height: 150, borderRadius: "50%", background: "green", color: "white", fontSize: 22, margin: 20, border: "none" }}>Приеми</button>
+        <button onClick={async () => { await supabase.from("calls").update({ status: "rejected" }).eq("id", incomingCall.id); setIncomingCall(null); }} style={{ width: 150, height: 150, borderRadius: "50%", background: "red", color: "white", fontSize: 22, border: "none" }}>Откажи</button>
+      </div>
+    );
+  }
 
+  // АКТИВНО ОБАЖДАНЕ
+  if (activeCall) {
+    const mode = activeCall.caller_id === currentUser.id || activeCall.isNewCaller? "caller" : "receiver";
+    return <Call contact={otherUser} callData={activeCall} mode={mode} onBack={async () => { if (activeCall.id) await supabase.from("calls").update({ status: "ended" }).eq("id", activeCall.id); setActiveCall(null); setIncomingCall(null); }} />;
+  }
 
+  return (
+    <div className="chat-room">
+      <div className="chat-header">
+        <button className="back-btn" onClick={onBack}>←</button>
+        <div className="chat-avatar">{otherUser.name?.charAt(0).toUpperCase()}</div>
+        <div className="user-title"><h2>{otherUser.name}</h2></div>
+        <div className="call-buttons">
+          <button onClick={() => setActiveCall({ isNewCaller: true, caller_id: currentUser.id, receiver_id: otherUser.id, contact: otherUser })}>📞</button>
+        </div>
+      </div>
+      <div className="messages">{messages.map(msg => <div key={msg.id} className={msg.sender_id === currentUser.id? "message mine" : "message"}>{msg.text}</div>)}<div ref={bottomRef} /></div>
+      <div className="message-input">
+        <input value={text} placeholder="Message..." onChange={e => setText(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} />
+        <button onClick={sendMessage}>Send</button>
+      </div>
+    </div>
+  );
+}  Call.tsx - ЦЕЛИЯТ - ОПРАВЕН import React, { useEffect, useRef, useState } from "react";
+import { supabase } from "./supabase";
 
+export default function Call({ contact, onBack, mode, callData }: any) {
+  const [status, setStatus] = useState(mode === "caller"? "Starting call..." : "Incoming call...");
+  const [callId, setCallId] = useState<number | null>(callData?.id || null);
+  const peer = useRef<RTCPeerConnection | null>(null);
+  const localStream = useRef<MediaStream | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const currentUser = useRef(JSON.parse(localStorage.getItem("ferilineUser") || "{}"));
 
+  function createPeerConnection(id: number) {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    pc.ontrack = (event) => { if (audioRef.current) audioRef.current.srcObject = event.streams[0]; };
+    pc.onicecandidate = async (event) => {
+      if (event.candidate && id) {
+        await supabase.from("call_ice_candidates").insert({
+          call_id: id,
+          user_id: currentUser.current.id,
+          candidate: event.candidate.toJSON()
+        });
+      }
+    };
+    peer.current = pc;
+    return pc;
+  }
 
-  async function sendMessage(){
+  async function getMicrophone() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStream.current = stream;
+      return stream;
+    } catch (e) {
+      console.log("MIC ERROR", e);
+      setStatus("Microphone permission denied");
+      return null;
+    }
+  }
 
+  // CALLER - само тук правим INSERT, никъде другаде
+  async function startCaller() {
+    const stream = await getMicrophone();
+    if (!stream) return;
 
-    if(!text.trim())
-      return;
-
-
-
-    const {data,error}=await supabase
-      .from("messages")
-      .insert([
-
-        {
-
-          sender_id:
-          currentUser.id,
-
-
-          receiver_id:
-          otherUser.id,
-
-
-          text:
-          text.trim()
-
-        }
-
-      ])
-      .select()
-      .single();
-
-
-
-
-    if(error){
-
-      console.log(error);
-
-      return;
-
+    let id = callData?.id;
+    // ако идваме от ChatRoom без id, създаваме обаждането сега
+    if (!id) {
+      const { data, error } = await supabase.from("calls").insert([{
+        caller_id: currentUser.current.id,
+        receiver_id: contact?.id || callData.receiver_id,
+        status: "ringing"
+      }]).select().single();
+      if (error ||!data) { setStatus("Call error"); return; }
+      id = data.id;
+      setCallId(id);
+    } else {
+      setCallId(id);
     }
 
-
-
-    setText("");
-
-
-
-    setMessages(old=>[
-
-      ...old,
-
-      data
-
-    ]);
-
-
+    const pc = createPeerConnection(id);
+    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    await supabase.from("calls").update({ offer }).eq("id", id);
+    setStatus("Calling " + (contact?.name || "user") + "...");
   }
 
-
-
-
-
-  useEffect(()=>{
-
-
-    bottomRef.current?.scrollIntoView({
-
-      behavior:"smooth"
-
-    });
-
-
-  },[messages]);  if(incomingCall){
-
-    return(
-
-      <div
-
-        style={{
-
-          height:"100vh",
-
-          background:"#111",
-
-          color:"#fff",
-
-          display:"flex",
-
-          flexDirection:"column",
-
-          justifyContent:"center",
-
-          alignItems:"center"
-
-        }}
-
-      >
-
-
-        <h2>
-          📞 Incoming call
-        </h2>
-
-
-        <p>
-          Someone is calling you
-        </p>
-
-
-
-        <button
-
-          onClick={()=>{
-
-            setCalling(true);
-
-          }}
-
-          style={{
-
-            width:"150px",
-
-            height:"150px",
-
-            borderRadius:"50%",
-
-            background:"green",
-
-            color:"white",
-
-            fontSize:"22px",
-
-            margin:"20px",
-
-            border:"none"
-
-          }}
-
-        >
-
-          Приеми
-
-        </button>
-
-
-
-
-
-        <button
-
-          onClick={async()=>{
-
-
-            await supabase
-              .from("calls")
-              .update({
-
-                status:"rejected"
-
-              })
-
-              .eq(
-
-                "id",
-
-                incomingCall.id
-
-              );
-
-
-
-            setIncomingCall(null);
-
-
-
-          }}
-
-
-          style={{
-
-            width:"150px",
-
-            height:"150px",
-
-            borderRadius:"50%",
-
-            background:"red",
-
-            color:"white",
-
-            fontSize:"22px",
-
-            border:"none"
-
-          }}
-
-        >
-
-          Откажи
-
-        </button>
-
-
-
-      </div>
-
-    );
-
-
+  // RECEIVER - чака offer ако го няма
+  async function startReceiver() {
+    if (!callData?.id) return;
+    setCallId(callData.id);
+    const stream = await getMicrophone();
+    if (!stream) return;
+    const pc = createPeerConnection(callData.id);
+    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+    let offer = callData.offer;
+    if (!offer) {
+      setStatus("Waiting for offer...");
+      const { data } = await supabase.from("calls").select("offer").eq("id", callData.id).single();
+      offer = data?.offer;
+    }
+    if (!offer) return; // ще дойде през realtime
+
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await supabase.from("calls").update({ answer, status: "accepted" }).eq("id", callData.id);
+    setStatus("Connected");
   }
 
+  useEffect(() => {
+    if (mode === "caller") startCaller();
+    else startReceiver();
+  }, []);
 
+  // Слушаме за answer и ICE и за край на разговора - САМО СЛЕД като имаме callId
+  useEffect(() => {
+    if (!callId) return;
 
-
-
-
-  if(calling){
-
-
-    return(
-
-      <Call
-
-        contact={otherUser}
-
-        mode={
-          incomingCall
-          ? "receiver"
-          : "caller"
-        }
-
-        callData={
-          incomingCall
-        }
-
-
-        onBack={()=>{
-
-          setCalling(false);
-
-          setIncomingCall(null);
-
-        }}
-
-      />
-
-    );
-
-
-  }  return (
-
-    <div className="chat-room">
-
-
-
-      <div className="chat-header">
-
-
-
-        <button
-
-          className="back-btn"
-
-          onClick={onBack}
-
-        >
-
-          ←
-
-        </button>
-
-
-
-
-        <div className="chat-avatar">
-
-          {
-
-            otherUser.name
-
-            ? otherUser.name
-              .charAt(0)
-              .toUpperCase()
-
-            : "F"
-
-          }
-
-        </div>
-
-
-
-
-        <div className="user-title">
-
-
-          <h2>
-
-            {otherUser.name}
-
-          </h2>
-
-
-
-          <span className="online-status">
-
-
-            {
-
-              online
-
-              ? "🟢 Online"
-
-              : "⚪ Offline"
-
+    const callChannel = supabase.channel("call-update-" + callId)
+     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "calls", filter: `id=eq.${callId}` }, async (payload) => {
+        const call: any = payload.new;
+        // Caller получава answer
+        if (call.answer && peer.current && mode === "caller") {
+          try {
+            const remoteDesc = peer.current.remoteDescription;
+            if (!remoteDesc) {
+              await peer.current.setRemoteDescription(new RTCSessionDescription(call.answer));
+              setStatus("Connected");
             }
-
-
-          </span>
-
-
-        </div>
-
-
-
-
-        <div className="call-buttons">
-
-
-          <button
-
-            onClick={()=>{
-
-              setCalling(true);
-
-            }}
-
-          >
-
-            📞
-
-          </button>
-
-
-
-
-          <button>
-
-            📷
-
-          </button>
-
-
-        </div>
-
-
-
-      </div>
-
-
-
-
-
-
-
-      <div className="messages">
-
-
-        {
-
-          messages.map(msg=>(
-
-
-            <div
-
-              key={msg.id}
-
-
-              className={
-
-                msg.sender_id===currentUser.id
-
-                ? "message mine"
-
-                : "message"
-
-              }
-
-            >
-
-
-              {msg.text}
-
-
-            </div>
-
-
-          ))
-
-
-
+          } catch (e) { console.log("ANSWER ERROR", e); }
         }
+        // Receiver е чакал offer
+        if (call.offer && peer.current && mode === "receiver" &&!peer.current.remoteDescription) {
+          try {
+            await peer.current.setRemoteDescription(new RTCSessionDescription(call.offer));
+            const answer = await peer.current.createAnswer();
+            await peer.current.setLocalDescription(answer);
+            await supabase.from("calls").update({ answer, status: "accepted" }).eq("id", callId);
+            setStatus("Connected");
+          } catch {}
+        }
+        if (call.status === "ended") { setStatus("Call ended"); setTimeout(onBack, 1000); }
+        if (call.status === "rejected") { setStatus("Call declined"); setTimeout(onBack, 1000); }
+      }).subscribe();
 
+    const iceChannel = supabase.channel("ice-" + callId)
+     .on("postgres_changes", { event: "INSERT", schema: "public", table: "call_ice_candidates", filter: `call_id=eq.${callId}` }, async (payload) => {
+        const item: any = payload.new;
+        if (item.user_id!== currentUser.current.id && peer.current) {
+          try { await peer.current.addIceCandidate(new RTCIceCandidate(item.candidate)); } catch {}
+        }
+      }).subscribe();
 
+    return () => {
+      supabase.removeChannel(callChannel);
+      supabase.removeChannel(iceChannel);
+    };
+  }, [callId]);
 
-        <div ref={bottomRef}/>
+  useEffect(() => {
+    return () => {
+      localStream.current?.getTracks().forEach(t => t.stop());
+      peer.current?.close();
+    };
+  }, []);
 
+  async function endCall() {
+    if (callId) await supabase.from("calls").update({ status: "ended" }).eq("id", callId);
+    localStream.current?.getTracks().forEach(t => t.stop());
+    peer.current?.close();
+    onBack();
+  }
 
-
-      </div>
-
-
-
-
-
-
-
-
-      <div className="message-input">
-
-
-
-        <input
-
-
-          value={text}
-
-
-          placeholder="Message..."
-
-
-          onChange={(e)=>
-
-            setText(
-              e.target.value
-            )
-
-          }
-
-
-
-          onKeyDown={(e)=>
-
-            e.key==="Enter" &&
-            sendMessage()
-
-          }
-
-
-
-        />
-
-
-
-
-
-        <button
-
-          onClick={sendMessage}
-
-        >
-
-          Send
-
-        </button>
-
-
-
-      </div>
-
-
-
+  return (
+    <div style={{ height: "100vh", background: "#111", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+      <h2>📞 FeriLine Call</h2>
+      <p>{status}</p>
+      <audio ref={audioRef} autoPlay />
+      <button onClick={endCall} style={{ width: 120, height: 50, marginTop: 20, borderRadius: 10, background: "red", color: "#fff", border: "none" }}>End call</button>
     </div>
-
-
   );
-
-
-}
+}  Пусни ги и тествай А -> Б. Трябва да стане "Connected" и на двамата.
