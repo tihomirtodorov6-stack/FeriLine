@@ -1,4 +1,4 @@
-1. ChatRoom.tsx - ЦЕЛИЯТ import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "./supabase";  all.tsx - ЦЕЛИЯТ - ОПРАВЕН 
 import { playMessageSound } from "./sound";
 import Call from "./Call";
@@ -265,4 +265,4 @@ export default function Call({ contact, onBack, mode, callData }: any) {
       <button onClick={endCall} style={{ width: 120, height: 50, marginTop: 20, borderRadius: 10, background: "red", color: "#fff", border: "none" }}>End call</button>
     </div>
   );
-}  Пусни ги и тествай А -> Б. Трябва да стане "Connected" и на двамата.
+}  
