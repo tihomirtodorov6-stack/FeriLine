@@ -423,9 +423,13 @@ if(incomingCall){
 if (calling) {
   return (
     <Call
-    contact={otherUser}
-    mode="caller"
-      onBack={() => setCalling(false)}
+      contact={otherUser}
+      mode={incomingCall ? "receiver" : "caller"}
+      callData={incomingCall}
+      onBack={()=>{
+        setCalling(false);
+        setIncomingCall(null);
+      }}
     />
   );
 }
