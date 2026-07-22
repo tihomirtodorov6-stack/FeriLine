@@ -2,17 +2,17 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "./supabase";
 import { playMessageSound } from "./sound";
 import Call from "./Call";
+
 export default function ChatRoom({ name, contact, onBack }: any) {
 
   const [messages, setMessages] = useState<any[]>([]);
-const [text, setText] = useState("");
-const [online, setOnline] = useState(false);
+  const [text, setText] = useState("");
+  const [online, setOnline] = useState(false);
 
-const [calling, setCalling] = useState(false);
-const [incomingCall, setIncomingCall] = useState<any>(null);
-const [activeCall, setActiveCall] = useState<any>(null);
-const [acceptingCall, setAcceptingCall] = useState(false);
-const bottomRef = useRef<any>(null);
+  const [calling, setCalling] = useState(false);
+  const [incomingCall, setIncomingCall] = useState<any>(null);
+
+  const bottomRef = useRef<any>(null);
 
   const currentUser = JSON.parse(
     localStorage.getItem("ferilineUser") || "{}"
@@ -30,12 +30,17 @@ const bottomRef = useRef<any>(null);
 
     if(!currentUser.id) return;
 
+
     await supabase
       .from("user_status")
       .upsert({
+
         user_id: currentUser.id,
+
         online:true,
+
         last_active:new Date()
+
       });
 
   }
@@ -50,28 +55,40 @@ const bottomRef = useRef<any>(null);
     const {data}=await supabase
       .from("user_status")
       .select("last_active")
-      .eq("user_id", otherUser.id)
+      .eq(
+        "user_id",
+        otherUser.id
+      )
       .single();
+
 
 
     if(data?.last_active){
 
-      const last = new Date(data.last_active).getTime();
-      const now = new Date().getTime();
+      const last =
+        new Date(
+          data.last_active
+        ).getTime();
+
+
+      const now =
+        new Date().getTime();
+
 
       setOnline(
         now - last < 60000
       );
 
+
     } else {
 
+
       setOnline(false);
+
 
     }
 
   }
-
-
 
 
 
@@ -81,7 +98,9 @@ const bottomRef = useRef<any>(null);
       .from("messages")
       .select("*")
       .or(
+
         `and(sender_id.eq.${currentUser.id},receiver_id.eq.${otherUser.id}),and(sender_id.eq.${otherUser.id},receiver_id.eq.${currentUser.id})`
+
       )
       .order(
         "created_at",
@@ -91,17 +110,11 @@ const bottomRef = useRef<any>(null);
       );
 
 
-    setMessages(data || []);
+    setMessages(
+      data || []
+    );
 
-  }
-
-
-
-
-
-
-
-  useEffect(()=>{
+  }  useEffect(()=>{
 
     if(!currentUser.id || !otherUser.id){
       return;
@@ -129,40 +142,66 @@ const bottomRef = useRef<any>(null);
 
     const channel=supabase
       .channel(
-        "chat-" + currentUser.id + "-" + otherUser.id
+        "chat-" +
+        currentUser.id +
+        "-" +
+        otherUser.id
       )
       .on(
+
         "postgres_changes",
+
         {
           event:"INSERT",
           schema:"public",
           table:"messages"
         },
+
+
         (payload)=>{
 
-          const msg:any = payload.new;
+
+          const msg:any =
+            payload.new;
+
 
 
           if(
+
             (msg.sender_id===currentUser.id &&
              msg.receiver_id===otherUser.id)
+
             ||
+
             (msg.sender_id===otherUser.id &&
              msg.receiver_id===currentUser.id)
+
           ){
 
 
             setMessages(old=>{
 
-              if(old.some(x=>x.id===msg.id)){
+
+              if(
+                old.some(
+                  x=>x.id===msg.id
+                )
+              ){
+
                 return old;
+
               }
 
 
-              // звук само при получено съобщение
-              if(msg.sender_id===otherUser.id){
+
+              if(
+                msg.sender_id===otherUser.id
+              ){
+
                 playMessageSound();
+
               }
+
 
 
               return [
@@ -170,47 +209,91 @@ const bottomRef = useRef<any>(null);
                 msg
               ];
 
+
             });
 
 
           }
 
+
         }
+
       )
       .subscribe();
 
 
-const callChannel = supabase
-  .channel("calls-" + currentUser.id)
-  .on(
-    "postgres_changes",
-    {
-      event:"INSERT",
-      schema:"public",
-      table:"calls",
-      filter:`receiver_id=eq.${currentUser.id}`
-    },
-    (payload)=>{
 
-      const call:any = payload.new;
 
-    if(call.status === "ringing" && !calling && !acceptingCall){
-  console.log("INCOMING CALL", call);
-  setIncomingCall(call);
-}
 
-    }
-  )
-  .subscribe();
+    const callChannel=supabase
+      .channel(
+        "calls-" + currentUser.id
+      )
+      .on(
+
+        "postgres_changes",
+
+        {
+          event:"INSERT",
+          schema:"public",
+          table:"calls",
+          filter:
+          `receiver_id=eq.${currentUser.id}`
+        },
+
+
+        (payload)=>{
+
+
+          const call:any =
+            payload.new;
+
+
+
+          if(
+            call.status==="ringing"
+          ){
+
+            console.log(
+              "INCOMING CALL",
+              call
+            );
+
+
+            setIncomingCall(
+              call
+            );
+
+
+          }
+
+
+        }
+
+      )
+      .subscribe();
+
+
+
+
     return ()=>{
 
-  clearInterval(timer);
 
-  supabase.removeChannel(channel);
+      clearInterval(timer);
 
-  supabase.removeChannel(callChannel);
 
-};
+      supabase.removeChannel(
+        channel
+      );
+
+
+      supabase.removeChannel(
+        callChannel
+      );
+
+
+    };
+
 
 
   },[]);
@@ -219,45 +302,215 @@ const callChannel = supabase
 
 
 
-
-
-
   async function sendMessage(){
 
-    if(!text.trim()) return;
+
+    if(!text.trim())
+      return;
+
 
 
     const {data,error}=await supabase
       .from("messages")
       .insert([
+
         {
-          sender_id:currentUser.id,
-          receiver_id:otherUser.id,
-          text:text.trim()
+
+          sender_id:
+          currentUser.id,
+
+
+          receiver_id:
+          otherUser.id,
+
+
+          text:
+          text.trim()
+
         }
+
       ])
       .select()
       .single();
 
 
 
+
     if(error){
 
       console.log(error);
+
       return;
 
     }
 
 
+
     setText("");
+
 
 
     setMessages(old=>[
 
       ...old,
+
       data
 
     ]);
+
+
+  }
+
+
+
+
+
+  useEffect(()=>{
+
+
+    bottomRef.current?.scrollIntoView({
+
+      behavior:"smooth"
+
+    });
+
+
+  },[messages]);  if(incomingCall){
+
+    return(
+
+      <div
+
+        style={{
+
+          height:"100vh",
+
+          background:"#111",
+
+          color:"#fff",
+
+          display:"flex",
+
+          flexDirection:"column",
+
+          justifyContent:"center",
+
+          alignItems:"center"
+
+        }}
+
+      >
+
+
+        <h2>
+          📞 Incoming call
+        </h2>
+
+
+        <p>
+          Someone is calling you
+        </p>
+
+
+
+        <button
+
+          onClick={()=>{
+
+            setCalling(true);
+
+          }}
+
+          style={{
+
+            width:"150px",
+
+            height:"150px",
+
+            borderRadius:"50%",
+
+            background:"green",
+
+            color:"white",
+
+            fontSize:"22px",
+
+            margin:"20px",
+
+            border:"none"
+
+          }}
+
+        >
+
+          Приеми
+
+        </button>
+
+
+
+
+
+        <button
+
+          onClick={async()=>{
+
+
+            await supabase
+              .from("calls")
+              .update({
+
+                status:"rejected"
+
+              })
+
+              .eq(
+
+                "id",
+
+                incomingCall.id
+
+              );
+
+
+
+            setIncomingCall(null);
+
+
+
+          }}
+
+
+          style={{
+
+            width:"150px",
+
+            height:"150px",
+
+            borderRadius:"50%",
+
+            background:"red",
+
+            color:"white",
+
+            fontSize:"22px",
+
+            border:"none"
+
+          }}
+
+        >
+
+          Откажи
+
+        </button>
+
+
+
+      </div>
+
+    );
+
 
   }
 
@@ -266,132 +519,76 @@ const callChannel = supabase
 
 
 
+  if(calling){
 
 
-  useEffect(()=>{
+    return(
 
-    bottomRef.current?.scrollIntoView({
-      behavior:"smooth"
-    });
+      <Call
 
-  },[messages]);
+        contact={otherUser}
 
+        mode={
+          incomingCall
+          ? "receiver"
+          : "caller"
+        }
 
-
-
-
-
-
-
-
-if(incomingCall){
-
-  return(
-    <div
-      style={{
-        height:"100vh",
-        background:"#111",
-        color:"#fff",
-        display:"flex",
-        flexDirection:"column",
-        justifyContent:"center",
-        alignItems:"center"
-      }}
-    >
-
-      <h2>📞 Incoming call</h2>
-
-      <p>Someone is calling you</p>
-
-  
+        callData={
+          incomingCall
+        }
 
 
-  <button
-  onClick={()=>{
-  setAcceptingCall(true);
-  setActiveCall(incomingCall);
-  setIncomingCall(null);
-  setCalling(true);
-}}
-  style={{
-    width:"150px",
-    height:"150px",
-    borderRadius:"50%",
-    background:"green",
-    color:"white",
-    fontSize:"22px",
-    margin:"20px",
-    border:"none"
-  }}
->
-  Приеми
-</button>
-<button
-  onClick={async()=>{
+        onBack={()=>{
 
-    await supabase
-      .from("calls")
-      .update({
-        status:"rejected"
-      })
-      .eq("id", incomingCall.id);
+          setCalling(false);
 
-    setIncomingCall(null);
+          setIncomingCall(null);
 
-  }}
-  style={{
-    width:"150px",
-    height:"150px",
-    borderRadius:"50%",
-    background:"red",
-    color:"white",
-    fontSize:"22px",
-    border:"none"
-  }}
->
-  Откажи
-</button>
+        }}
 
-    </div>
-  );
+      />
 
-}
-if (calling) {
-  return (
-    <Call
-      contact={otherUser}
-      mode={activeCall ? "receiver" : "caller"}
-      callData={activeCall}
-      onBack={()=>{
-        setCalling(false);
-        setIncomingCall(null);
-        setActiveCall(null);
-      }}
-    />
-  );
-}
-  return (
+    );
+
+
+  }  return (
 
     <div className="chat-room">
+
 
 
       <div className="chat-header">
 
 
+
         <button
+
           className="back-btn"
+
           onClick={onBack}
+
         >
+
           ←
+
         </button>
+
 
 
 
         <div className="chat-avatar">
 
-          {otherUser.name
-            ? otherUser.name.charAt(0).toUpperCase()
+          {
+
+            otherUser.name
+
+            ? otherUser.name
+              .charAt(0)
+              .toUpperCase()
+
             : "F"
+
           }
 
         </div>
@@ -401,17 +598,28 @@ if (calling) {
 
         <div className="user-title">
 
+
           <h2>
+
             {otherUser.name}
+
           </h2>
+
 
 
           <span className="online-status">
 
-            {online
+
+            {
+
+              online
+
               ? "🟢 Online"
+
               : "⚪ Offline"
+
             }
+
 
           </span>
 
@@ -421,16 +629,32 @@ if (calling) {
 
 
 
-
         <div className="call-buttons">
 
-          <button
-  onClick={() => setCalling(true)}
->
-  📞
-</button>
 
-          <button>📷</button>
+          <button
+
+            onClick={()=>{
+
+              setCalling(true);
+
+            }}
+
+          >
+
+            📞
+
+          </button>
+
+
+
+
+          <button>
+
+            📷
+
+          </button>
+
 
         </div>
 
@@ -443,36 +667,53 @@ if (calling) {
 
 
 
+
       <div className="messages">
 
 
-        {messages.map(msg=>(
+        {
 
-          <div
-
-            key={msg.id}
-
-            className={
-              msg.sender_id===currentUser.id
-              ? "message mine"
-              : "message"
-            }
-
-          >
-
-            {msg.text}
+          messages.map(msg=>(
 
 
-          </div>
+            <div
+
+              key={msg.id}
 
 
-        ))}
+              className={
+
+                msg.sender_id===currentUser.id
+
+                ? "message mine"
+
+                : "message"
+
+              }
+
+            >
+
+
+              {msg.text}
+
+
+            </div>
+
+
+          ))
+
+
+
+        }
+
 
 
         <div ref={bottomRef}/>
 
 
+
       </div>
+
 
 
 
@@ -483,23 +724,46 @@ if (calling) {
       <div className="message-input">
 
 
+
         <input
+
 
           value={text}
 
+
           placeholder="Message..."
 
-          onChange={(e)=>setText(e.target.value)}
+
+          onChange={(e)=>
+
+            setText(
+              e.target.value
+            )
+
+          }
+
+
 
           onKeyDown={(e)=>
-            e.key==="Enter" && sendMessage()
+
+            e.key==="Enter" &&
+            sendMessage()
+
           }
+
+
 
         />
 
 
 
-        <button onClick={sendMessage}>
+
+
+        <button
+
+          onClick={sendMessage}
+
+        >
 
           Send
 
@@ -510,8 +774,11 @@ if (calling) {
       </div>
 
 
+
     </div>
 
+
   );
+
 
 }
