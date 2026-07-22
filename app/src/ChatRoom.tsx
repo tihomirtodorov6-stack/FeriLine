@@ -438,8 +438,8 @@ if(incomingCall){
 if (calling) {
   return (
     <Call
-      contact={otherUser}
-      mode="receiver"
+    contact={otherUser}
+    mode="caller"
       onBack={() => setCalling(false)}
     />
   );
