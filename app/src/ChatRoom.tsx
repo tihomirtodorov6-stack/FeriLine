@@ -374,7 +374,9 @@ if(incomingCall){
 
 
   <button
-  onClick={acceptCall}
+  onClick={()=>{
+  setCalling(true);
+}}
   style={{
     width:"150px",
     height:"150px",
