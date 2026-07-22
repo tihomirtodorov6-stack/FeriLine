@@ -149,12 +149,13 @@ else{
 
 
 
-useEffect(()=>{
+useEffect(() => {
 
-  startCall();
+  if (mode === "caller") {
+    startCall();
+  }
 
-
-},[]);
+}, []);
 
 
 
