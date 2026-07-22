@@ -5,10 +5,14 @@ import Call from "./Call";
 export default function ChatRoom({ name, contact, onBack }: any) {
 
   const [messages, setMessages] = useState<any[]>([]);
-  const [text, setText] = useState("");
-  const [online, setOnline] = useState(false);
-const [calling, setCalling] = useState(false);const [incomingCall, setIncomingCall] = useState<any>(null);
-  const bottomRef = useRef<any>(null);
+const [text, setText] = useState("");
+const [online, setOnline] = useState(false);
+
+const [calling, setCalling] = useState(false);
+const [incomingCall, setIncomingCall] = useState<any>(null);
+const [activeCall, setActiveCall] = useState<any>(null);
+
+const bottomRef = useRef<any>(null);
 
   const currentUser = JSON.parse(
     localStorage.getItem("ferilineUser") || "{}"
