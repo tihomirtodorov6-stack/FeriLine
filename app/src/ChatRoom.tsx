@@ -7,9 +7,9 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   const bottomRef = useRef<any>(null);
   const [otherUser, setOtherUser] = useState(contact || { id: null, name: name });
 
-  // CALL STATE
   const [callStatus, setCallStatus] = useState<'idle'|'calling'|'incoming'|'in-call'>('idle');
   const [incomingOffer, setIncomingOffer] = useState<any>(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -26,7 +26,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     }
   }, [otherUser.name]);
 
-  // съобщения
   useEffect(() => {
     if (!currentUser.id ||!otherUser.id) return;
     loadHistory();
@@ -39,7 +38,6 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     return ()=>{ supabase.removeChannel(ch); };
   }, [currentUser.id, otherUser.id]);
 
-  // CALL CHANNEL - една обща стая за двамата
   useEffect(() => {
     if(!currentUser.id ||!otherUser.id) return;
     const roomId = [currentUser.id, otherUser.id].sort().join('-');
@@ -69,7 +67,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   }, [currentUser.id, otherUser.id]);
 
   function createPeer(){
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
     pc.onicecandidate = (e)=>{
       if(e.candidate){
         callChannelRef.current?.send({ type:'broadcast', event:'ice', payload:{ candidate:e.candidate, sender: currentUser.id } });
@@ -78,6 +76,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     pc.ontrack = (e)=>{
       if(remoteAudioRef.current){
         remoteAudioRef.current.srcObject = e.streams[0];
+        remoteAudioRef.current.play().catch(()=>{});
       }
     };
     pcRef.current = pc;
@@ -86,7 +85,14 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   async function startCall(){
     try{
-      const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
+          channelCount: 1
+        }
+      });
       localStreamRef.current = stream;
       const pc = createPeer();
       stream.getTracks().forEach(t=> pc.addTrack(t, stream));
@@ -99,7 +105,14 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   async function answerCall(){
     try{
-      const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
+          channelCount: 1
+        }
+      });
       localStreamRef.current = stream;
       const pc = createPeer();
       stream.getTracks().forEach(t=> pc.addTrack(t, stream));
@@ -111,6 +124,16 @@ export default function ChatRoom({ name, contact, onBack }: any) {
     }catch(err){ alert('Не можа да се вземе микрофона'); }
   }
 
+  function toggleMute(){
+    if(localStreamRef.current){
+      const track = localStreamRef.current.getAudioTracks()[0];
+      if(track){
+        track.enabled =!track.enabled;
+        setIsMuted(!track.enabled);
+      }
+    }
+  }
+
   function endCall(){
     callChannelRef.current?.send({ type:'broadcast', event:'end', payload:{ sender: currentUser.id } });
     endCallCleanup();
@@ -119,7 +142,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   function endCallCleanup(){
     pcRef.current?.close(); pcRef.current=null;
     localStreamRef.current?.getTracks().forEach(t=>t.stop());
-    setCallStatus('idle'); setIncomingOffer(null);
+    setCallStatus('idle'); setIncomingOffer(null); setIsMuted(false);
     if(remoteAudioRef.current) remoteAudioRef.current.srcObject=null;
   }
 
@@ -136,41 +159,43 @@ export default function ChatRoom({ name, contact, onBack }: any) {
 
   return (
     <div className="chat-room" style={{position:'relative'}}>
-      <div className="chat-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px'}}>
-        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-          <button className="back-btn" onClick={onBack}>← Back</button>
-          <h2 style={{margin:0}}>{otherUser.name}</h2>
+      {/* ХЕДЪР - ОПРАВЕН */}
+      {callStatus === 'in-call'? (
+        <div className="chat-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px', background:'#2ecc71', color:'white'}}>
+          <span>🔊 Разговор с {otherUser.name}</span>
+          <div style={{display:'flex', gap:'8px'}}>
+            <button onClick={toggleMute} style={{background:'white', color:'#2ecc71', border:'none', width:'38px', height:'38px', borderRadius:'50%'}}>{isMuted? '🔇' : '🎤'}</button>
+            <button onClick={endCall} style={{background:'red', color:'white', border:'none', padding:'8px 15px', borderRadius:'20px'}}>Край</button>
+          </div>
         </div>
-        <button onClick={startCall} disabled={callStatus!=='idle'} style={{fontSize:'24px', background:'#2ecc71', border:'none', borderRadius:'50%', width:'42px', height:'42px'}}>📞</button>
-      </div>
+      ) : (
+        <div className="chat-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px'}}>
+          <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+            <button className="back-btn" onClick={onBack}>← Back</button>
+            <h2 style={{margin:0}}>{otherUser.name}</h2>
+          </div>
+          <button onClick={startCall} disabled={callStatus!=='idle'} style={{fontSize:'24px', background:'#2ecc71', border:'none', borderRadius:'50%', width:'42px', height:'42px'}}>📞</button>
+        </div>
+      )}
 
-      {/* OVERLAYS ЗА ЗВЪНЕНЕ */}
       {callStatus==='calling' && (
         <div style={{position:'absolute', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.85)', zIndex:100, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'white'}}>
           <h2>Звъниш на {otherUser.name}...</h2>
-          <p>Изчакай да вдигне</p>
-          <button onClick={endCall} style={{marginTop:'20px', background:'red', color:'white', border:'none', padding:'15px 30px', borderRadius:'30px', fontSize:'18px'}}>Затвори ✕</button>
+          <button onClick={endCall} style={{marginTop:'20px', background:'red', color:'white', border:'none', padding:'15px 30px', borderRadius:'30px'}}>Затвори ✕</button>
         </div>
       )}
       {callStatus==='incoming' && (
         <div style={{position:'absolute', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.85)', zIndex:100, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'white'}}>
           <h2>{otherUser.name} ти звъни!</h2>
           <div style={{display:'flex', gap:'30px', marginTop:'30px'}}>
-            <button onClick={endCall} style={{background:'red', color:'white', border:'none', width:'70px', height:'70px', borderRadius:'50%', fontSize:'30px'}}>✕</button>
-            <button onClick={answerCall} style={{background:'#2ecc71', color:'white', border:'none', width:'70px', height:'70px', borderRadius:'50%', fontSize:'30px'}}>📞</button>
+            <button onClick={endCall} style={{background:'red', color:'white', border:'none', width:'70px', height:'70px', borderRadius:'50%'}}>✕</button>
+            <button onClick={answerCall} style={{background:'#2ecc71', color:'white', border:'none', width:'70px', height:'70px', borderRadius:'50%'}}>📞</button>
           </div>
-        </div>
-      )}
-      {callStatus==='in-call' && (
-        <div style={{position:'absolute', top:0, left:0, right:0, background:'#2ecc71', padding:'10px', zIndex:101, display:'flex', justifyContent:'space-between', alignItems:'center', color:'white'}}>
-          <span>🔊 Разговор с {otherUser.name}</span>
-          <button onClick={endCall} style={{background:'red', color:'white', border:'none', padding:'8px 15px', borderRadius:'20px'}}>Край</button>
         </div>
       )}
 
       <audio ref={remoteAudioRef} autoPlay playsInline />
-
-      <div className="messages" style={{paddingTop: callStatus==='in-call'?'45px':'0'}}>
+      <div className="messages">
         {messages.map((msg:any) => (
           <div key={msg.id} className={msg.sender_id === currentUser.id? "message mine" : "message"}>{msg.text}</div>
         ))}
