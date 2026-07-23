@@ -3,6 +3,31 @@ import { supabase } from "../lib/supabase";
 
 const STUN = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
 
+async function sendPushToCallee(calleeId: string, callId: number) {
+  try {
+    console.log("SEND PUSH TO:", calleeId);
+    const { data: targetUser } = await supabase.from("users").select("push_subscription, push_token").eq("id", calleeId).single();
+    if(!targetUser) return;
+    let subscription: any = targetUser.push_subscription;
+    if(!subscription && targetUser.push_token) {
+      try { const p = JSON.parse(targetUser.push_token); if(p.endpoint) subscription = p; } catch {}
+    }
+    if(!subscription?.endpoint) {
+      console.log("No subscription");
+      return;
+    }
+    const caller = JSON.parse(localStorage.getItem("ferilineUser") || "null");
+    const callerName = caller?.username || caller?.name || "FeriLine";
+    const { error } = await supabase.functions.invoke('send-push', {
+      body: { 
+        subscription, 
+        payload: { title: "FeriLine", body: `Входящо обаждане от ${callerName}`, url: `/`, callId: callId.toString() } 
+      }
+    });
+    console.log("PUSH SENT", error);
+  } catch(e) { console.log("PUSH ERROR", e); }
+}
+
 export default function Call({ callId, userId, onEnd }: { callId: number, userId: string, onEnd: () => void }) {
   const [status, setStatus] = useState("Connecting...");
   const [error, setError] = useState<string|null>(null);
@@ -19,7 +44,6 @@ export default function Call({ callId, userId, onEnd }: { callId: number, userId
     const start = async () => {
       try {
         setStatus("Requesting mic...");
-        // ТУК Е ФИКСА ЗА МИКРОФОНИЯТА
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: { ideal: true },
@@ -55,14 +79,20 @@ export default function Call({ callId, userId, onEnd }: { callId: number, userId
 
         const { data: { user } } = await supabase.auth.getUser();
         const myId = user?.id;
-        // Ако ползваш custom users таблица, вземи isCaller по друг начин
         const isCaller = myId? callData.caller_id === myId : callData.caller_id === userId;
+        const calleeId = isCaller ? callData.callee_id || callData.receiver_id || callData.calleeId : callData.caller_id;
 
         if(isCaller){
           setStatus("Creating offer...");
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
           await supabase.from("calls").update({ offer }).eq("id", callId);
+
+          // ЗВЪНИМ НА ДРУГИЯ!
+          if(calleeId) {
+            console.log("CALLING PUSH", calleeId);
+            sendPushToCallee(calleeId, callId);
+          }
 
           callChannel = supabase.channel(`call-${callId}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "calls", filter: `id=eq.${callId}` }, async (payload:any) => {
             if(payload.new.answer &&!pc.currentRemoteDescription){
