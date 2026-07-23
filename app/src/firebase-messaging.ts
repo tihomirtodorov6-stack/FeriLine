@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-const VAPID_KEY = "BHzpMyloZq8_Nkn2hjB99kxbN45r7WvgLOXvZ4FCRdOwhMZy3UgarHiG2FoHYtHDUdFUqVGq1ayc0hSkmsGQoiY";
+const VAPID_KEY = "BIGYBBLbIhqTuqaHLLkQTu9MZSessV2f-WvQAgCaA6AoLolY73xBc-0sxv17ESKJmQOlPlifKW2Ete4mve2VmD0";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -24,13 +24,11 @@ export async function requestNotificationPermission() {
       return null;
     }
 
-    // Регистрираме НОВИЯ sw.js, не стария firebase
     const registration = await navigator.serviceWorker.register("/sw.js");
     console.log("SERVICE WORKER OK:", registration);
 
     await navigator.serviceWorker.ready;
 
-    // Ако вече има абонамент, ползвай го
     let subscription = await registration.pushManager.getSubscription();
 
     if (!subscription) {
@@ -42,59 +40,4 @@ export async function requestNotificationPermission() {
     }
 
     console.log("PUSH SUB:", subscription);
-    console.log("ENDPOINT:", subscription.endpoint);
-
-    const user = JSON.parse(localStorage.getItem("ferilineUser") || "null");
-
-    if (user && subscription) {
-      // Запазваме целия абонамент + endpoint за съвместимост
-      const { error } = await supabase
-       .from("users")
-       .update({
-          push_token: subscription.endpoint,
-          push_subscription: subscription.toJSON(),
-        })
-       .eq("id", user.id);
-
-      if (error) {
-        // Ако няма колона push_subscription, пробвай само с push_token
-        console.log("TRY ONLY TOKEN, ERROR:", error);
-        await supabase
-         .from("users")
-         .update({
-            push_token: JSON.stringify(subscription.toJSON()),
-          })
-         .eq("id", user.id);
-      }
-    }
-
-    return subscription;
-  } catch (error) {
-    console.log("PUSH ERROR:", error);
-    return null;
-  }
-}
-
-export async function disableNotifications() {
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
-
-    if (subscription) {
-      await subscription.unsubscribe();
-    }
-
-    const user = JSON.parse(localStorage.getItem("ferilineUser") || "null");
-    if (user) {
-      await supabase
-       .from("users")
-       .update({
-          push_token: null,
-          push_subscription: null,
-        })
-       .eq("id", user.id);
-    }
-
-    return true;
-  } catch (error) {
-    console.log("DELETE PUSH ERROR:", error);
+    console.log("ENDPOINT:", subscription
