@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-const VAPID_KEY = "BIGYBBLbIhqTuqaHLLkQTu9MZSessV2f-WvQAgCaA6AoLolY73xBc-0sxv17ESKJmQOlPlifKW2Ete4mve2VmD0";
+const VAPID_KEY = "BN-PgA8Si25AgdmMRuyPx05s0HKq89_Uyi2_qQ8OmjeReNPl0R30w7DwX2iXnInKDrt36ye4I8-klacLn0-qJJI";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -40,4 +40,11 @@ export async function requestNotificationPermission() {
     }
 
     console.log("PUSH SUB:", subscription);
-    console.log("ENDPOINT:", subscription
+    console.log("ENDPOINT:", subscription.endpoint);
+
+    // Записваме в базата за да може да звъним
+    const savedUser = JSON.parse(localStorage.getItem("ferilineUser") || "null");
+    const userId = savedUser?.id;
+    if (userId && subscription) {
+      const subJson = subscription.toJSON();
+      await sup
