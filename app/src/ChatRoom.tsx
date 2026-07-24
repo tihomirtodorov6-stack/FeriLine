@@ -87,7 +87,13 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
 }, [currentUser.id, otherUser.id]);
 
   function createPeer(){
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });pc.onconnectionstatechange = () => {
+  console.log("CONNECTION STATE:", pc.connectionState);
+};
+
+pc.oniceconnectionstatechange = () => {
+  console.log("ICE STATE:", pc.iceConnectionState);
+};
     pc.onicecandidate = (e)=>{ if(e.candidate){ callChannelRef.current?.send({ type:'broadcast', event:'ice', payload:{ candidate:e.candidate, sender: currentUser.id } }); } };
     pc.ontrack = (e) => {
   if (remoteAudioRef.current) {
