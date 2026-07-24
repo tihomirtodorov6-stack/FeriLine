@@ -127,15 +127,23 @@ pc.oniceconnectionstatechange = () => {
     const pc = createPeer();
 
     console.log("INCOMING OFFER:", incomingOffer);
+await pc.setRemoteDescription(
+  new RTCSessionDescription(incomingOffer)
+);
+
 const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
-    });await pc.setRemoteDescription(
-      new RTCSessionDescription(incomingOffer)
-    );
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true
+  }
+});
+
+localStreamRef.current = stream;
+
+stream.getTracks().forEach(track => {
+  pc.addTrack(track, stream);
+});
     
 
     localStreamRef.current = stream;
