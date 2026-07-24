@@ -36,10 +36,25 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
   }, [currentUser.id, otherUser.id]);
 
   useEffect(() => {
-  if(!currentUser.id || !otherUser.id) return;
+  if (!currentUser.id || !otherUser.id) return;
 
-  console.log("CALL SYSTEM READY");
+  const channelName =
+    currentUser.id < otherUser.id
+      ? `call-${currentUser.id}-${otherUser.id}`
+      : `call-${otherUser.id}-${currentUser.id}`;
 
+  callChannelRef.current = supabase.channel(channelName);
+
+  callChannelRef.current.subscribe((status: string) => {
+    console.log("CALL CHANNEL:", status);
+  });
+
+  return () => {
+    if (callChannelRef.current) {
+      supabase.removeChannel(callChannelRef.current);
+      callChannelRef.current = null;
+    }
+  };
 }, [currentUser.id, otherUser.id]);
 
   function createPeer(){
