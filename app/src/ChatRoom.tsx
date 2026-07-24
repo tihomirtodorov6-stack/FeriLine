@@ -122,17 +122,23 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
 
     console.log("INCOMING OFFER:", incomingOffer);
 
-    localStreamRef.current = stream;
-
-stream.getTracks().forEach(track => {
-  pc.addTrack(track, stream);
-});
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
 
     localStreamRef.current = stream;
 
     stream.getTracks().forEach(track => {
       pc.addTrack(track, stream);
     });
+
+    await pc.setRemoteDescription(
+      new RTCSessionDescription(incomingOffer)
+    );
 
     const answer = await pc.createAnswer();
 
