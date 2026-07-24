@@ -160,7 +160,7 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
     alert("Грешка при приемане на разговора");
   }
 }
-  }
+  
 
   function toggleMicMute(){
     const s = localStreamRef.current; if(!s) return;
