@@ -114,16 +114,52 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
     }catch(err){ alert('Трябва да разрешиш микрофона!'); }
   }
 
-  async function answerCall(){console.log("ANSWER BUTTON PRESSED");
-    try{
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-      localStreamRef.current = stream; setIsMicMuted(false); setIsSpeakerMuted(false);
-      const pc = createPeer(); stream.getTracks().forEach(t=> pc.addTrack(t, stream));console.log("INCOMING OFFER:", incomingOffer);
-      await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
-      const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
-      callChannelRef.current?.send({ type:'broadcast', event:'answer', payload:{ answer, sender: currentUser.id } });
-      setCallStatus('in-call');
-    }catch(err){ alert('Не можа да се вземе микрофона'); }
+  async function answerCall(){
+  console.log("ANSWER BUTTON PRESSED");
+
+  try{
+    const pc = createPeer();
+
+    console.log("INCOMING OFFER:", incomingOffer);
+
+    await pc.setRemoteDescription(
+      new RTCSessionDescription(incomingOffer)
+    );
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+
+    localStreamRef.current = stream;
+
+    stream.getTracks().forEach(track => {
+      pc.addTrack(track, stream);
+    });
+
+    const answer = await pc.createAnswer();
+
+    await pc.setLocalDescription(answer);
+
+    callChannelRef.current?.send({
+      type:'broadcast',
+      event:'answer',
+      payload:{
+        answer,
+        sender: currentUser.id
+      }
+    });
+
+    setCallStatus('in-call');
+
+  }catch(err){
+    console.log("ANSWER ERROR:", err);
+    alert("Грешка при приемане на разговора");
+  }
+}
   }
 
   function toggleMicMute(){
