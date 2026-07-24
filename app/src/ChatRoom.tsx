@@ -118,7 +118,7 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
     try{
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       localStreamRef.current = stream; setIsMicMuted(false); setIsSpeakerMuted(false);
-      const pc = createPeer(); stream.getTracks().forEach(t=> pc.addTrack(t, stream));
+      const pc = createPeer(); stream.getTracks().forEach(t=> pc.addTrack(t, stream));console.log("INCOMING OFFER:", incomingOffer);
       await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
       const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
       callChannelRef.current?.send({ type:'broadcast', event:'answer', payload:{ answer, sender: currentUser.id } });
