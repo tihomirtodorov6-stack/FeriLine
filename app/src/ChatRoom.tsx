@@ -13,7 +13,7 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
-  const callChannelRef = useRef<any>(null);
+  const callIdRef = useRef<number | null>(null);
   const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
 
   useEffect(() => {
