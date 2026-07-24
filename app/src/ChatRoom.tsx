@@ -45,7 +45,36 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
 
   callChannelRef.current = supabase.channel(channelName);
 
-  callChannelRef.current.subscribe((status: string) => {
+  callChannelRef.current
+  .on("broadcast", { event: "offer" }, ({ payload }) => {
+    if (payload.sender === currentUser.id) return;
+
+    setIncomingOffer(payload.offer);
+    setCallStatus("incoming");
+  })
+  .on("broadcast", { event: "answer" }, async ({ payload }) => {
+    if (payload.sender === currentUser.id) return;
+
+    if (pcRef.current) {
+      await pcRef.current.setRemoteDescription(
+        new RTCSessionDescription(payload.answer)
+      );
+      setCallStatus("in-call");
+    }
+  })
+  .on("broadcast", { event: "ice" }, async ({ payload }) => {
+    if (payload.sender === currentUser.id) return;
+
+    if (pcRef.current) {
+      await pcRef.current.addIceCandidate(
+        new RTCIceCandidate(payload.candidate)
+      );
+    }
+  })
+  .on("broadcast", { event: "end" }, () => {
+    endCallCleanup();
+  })
+  .subscribe((status) => {
     console.log("CALL CHANNEL:", status);
   });
 
