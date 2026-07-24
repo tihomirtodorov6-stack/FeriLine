@@ -12,7 +12,10 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-  
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
+const callIdRef = useRef<number | null>(null);
+const callChannelRef = useRef<any>(null);
+const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
 
   useEffect(() => {
     if (!otherUser.id && otherUser.name) {
