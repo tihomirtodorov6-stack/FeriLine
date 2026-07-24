@@ -146,11 +146,6 @@ stream.getTracks().forEach(track => {
 });
     
 
-    localStreamRef.current = stream;
-
-    stream.getTracks().forEach(track => {
-      pc.addTrack(track, stream);
-    });
 
     
 
