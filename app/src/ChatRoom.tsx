@@ -38,10 +38,7 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
   useEffect(() => {
   if (!currentUser.id || !otherUser.id) return;
 
-  const channelName =
-    currentUser.id < otherUser.id
-      ? `call-${currentUser.id}-${otherUser.id}`
-      : `call-${otherUser.id}-${currentUser.id}`;
+  const channelName = `call-${currentUser.id}-${otherUser.id}`;
 
   callChannelRef.current = supabase.channel(channelName);
 
