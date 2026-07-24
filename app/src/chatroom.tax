@@ -1,0 +1,123 @@
+import { useEffect, useRef, useState } from 'react';
+
+type Props = {
+  roomId: string;
+};
+
+type Message = {
+  id: string;
+  text: string;
+  sender: string;
+};
+
+export default function ChatRoom({ roomId }: Props) {
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+
+  // FIXED - тук беше грешката 'turn:open
+  const iceServers: RTCIceServer[] = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    // Ако искаш TURN за production, разкоментирай и сложи твоите данни:
+    // {
+    // urls: 'turn:openrelay.metered.ca:80',
+    // username: 'openrelayproject',
+    // credential: 'openrelayproject',
+    // },
+  ];
+
+  useEffect(() => {
+    const init = async () => {
+      const pc = new RTCPeerConnection({ iceServers });
+      pcRef.current = pc;
+
+      pc.ontrack = (event) => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        }
+      };
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      } catch (err) {
+        console.error('Media error:', err);
+      }
+    };
+
+    init();
+
+    return () => {
+      pcRef.current?.close();
+      pcRef.current = null;
+    };
+  }, [roomId]);
+
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    const msg: Message = {
+      id: Date.now().toString(),
+      text: input,
+      sender: 'me',
+    };
+    setMessages((prev) => [...prev, msg]);
+    setInput('');
+  };
+
+  return (
+    <div className="flex flex-col h-screen p-4 gap-4 bg-zinc-950 text-white">
+      <h2 className="text-xl font-bold">Стая: {roomId}</h2>
+
+      <div className="grid grid-cols-2 gap-4 flex-1">
+        <video
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full bg-zinc-900 rounded-xl object-cover"
+        />
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className="w-full h-full bg-zinc-900 rounded-xl object-cover"
+        />
+      </div>
+
+      <div className="border border-zinc-800 rounded-xl p-3 h-56 flex flex-col">
+        <div className="flex-1 overflow-y-auto space-y-2 mb-2">
+          {messages.map((m) => (
+            <div key={m.id} className="bg-zinc-800 rounded px-3 py-1 w-fit">
+              {m.text}
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder="Напиши съобщение..."
+            className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 outline-none"
+          />
+          <button
+            onClick={sendMessage}
+            className="bg-white text-black px-4 py-2 rounded-lg font-semibold"
+          >
+            Изпрати
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
