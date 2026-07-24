@@ -36,101 +36,63 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   }, [currentUser.id, otherUser.id]);
 
   useEffect(() => {
-  if (!currentUser.id ||!otherUser.id) return;
-
-  const channelName =
-  currentUser.id < otherUser.id
-   ? `call-${currentUser.id}-${otherUser.id}`
-    : `call-${otherUser.id}-${currentUser.id}`;
-
-  callChannelRef.current = supabase.channel(channelName);
-
-  callChannelRef.current
- .on("broadcast", { event: "offer" }, ({ payload }) => {
-    if (payload.sender === currentUser.id) return;
-    setIncomingOffer(payload.offer);
-    setCallStatus("incoming");
-  })
- .on("broadcast", { event: "answer" }, async ({ payload }) => {
-    if (payload.sender === currentUser.id) return;
-    if (pcRef.current) {
-      await pcRef.current.setRemoteDescription(
-        new RTCSessionDescription(payload.answer)
-      );
-      setCallStatus("in-call");
-    }
-  })
- .on("broadcast", { event: "ice" }, async ({ payload }) => {
-    if (payload.sender === currentUser.id) return;
-    if (pcRef.current) {
-      await pcRef.current.addIceCandidate(
-        new RTCIceCandidate(payload.candidate)
-      );
-    }
-  })
- .on("broadcast", { event: "end" }, () => {
-    endCallCleanup();
-  })
- .subscribe((status) => {
-    console.log("CALL CHANNEL:", status);
-  });
-
-  return () => {
-    if (callChannelRef.current) {
-      supabase.removeChannel(callChannelRef.current);
-      callChannelRef.current = null;
-    }
-  };
-}, [currentUser.id, otherUser.id]);
+    if (!currentUser.id ||!otherUser.id) return;
+    const channelName = currentUser.id < otherUser.id? `call-${currentUser.id}-${otherUser.id}` : `call-${otherUser.id}-${currentUser.id}`;
+    callChannelRef.current = supabase.channel(channelName);
+    callChannelRef.current
+   .on("broadcast", { event: "offer" }, ({ payload }) => {
+      if (payload.sender === currentUser.id) return;
+      setIncomingOffer(payload.offer);
+      setCallStatus("incoming");
+    })
+   .on("broadcast", { event: "answer" }, async ({ payload }) => {
+      if (payload.sender === currentUser.id) return;
+      if (pcRef.current) {
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
+        setCallStatus("in-call");
+      }
+    })
+   .on("broadcast", { event: "ice" }, async ({ payload }) => {
+      if (payload.sender === currentUser.id) return;
+      if (pcRef.current) {
+        await pcRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
+      }
+    })
+   .on("broadcast", { event: "end" }, () => {
+      endCallCleanup();
+    })
+   .subscribe((status) => {
+      console.log("CALL CHANNEL:", status);
+    });
+    return () => {
+      if (callChannelRef.current) {
+        supabase.removeChannel(callChannelRef.current);
+        callChannelRef.current = null;
+      }
+    };
+  }, [currentUser.id, otherUser.id]);
 
   function createPeer(){
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-          username: 'openrelayproject',
-          credential: 'openrelayproject'
-        }
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
       ]
     });
-
-    pc.onconnectionstatechange = () => {
-      console.log("CONNECTION STATE:", pc.connectionState);
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      console.log("ICE STATE:", pc.iceConnectionState);
-    };
-
-    pc.onicecandidate = (e)=>{
-      if(e.candidate){
-        callChannelRef.current?.send({ type:'broadcast', event:'ice', payload:{ candidate:e.candidate, sender: currentUser.id } });
-      }
-    };
-
+    pc.onconnectionstatechange = () => { console.log("CONNECTION STATE:", pc.connectionState); };
+    pc.oniceconnectionstatechange = () => { console.log("ICE STATE:", pc.iceConnectionState); };
+    pc.onicecandidate = (e)=>{ if(e.candidate){ callChannelRef.current?.send({ type:'broadcast', event:'ice', payload:{ candidate:e.candidate, sender: currentUser.id } }); } };
     pc.ontrack = (e) => {
       if (remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = e.streams[0];
         remoteAudioRef.current.muted = false;
         remoteAudioRef.current.volume = 1;
-        remoteAudioRef.current.play().catch((err) => {
-          console.log("Audio play error:", err);
-        });
+        remoteAudioRef.current.play().catch((err) => { console.log("Audio play error:", err); });
       }
     };
-
     pcRef.current = pc;
     return pc;
   }
@@ -147,30 +109,15 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   }
 
   async function answerCall(){
-    console.log("ANSWER BUTTON PRESSED");
     try{
       const pc = createPeer();
-      console.log("INCOMING OFFER:", incomingOffer);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
       localStreamRef.current = stream;
-      stream.getTracks().forEach(track => {
-        pc.addTrack(track, stream);
-      });
-      await pc.setRemoteDescription(
-        new RTCSessionDescription(incomingOffer)
-      );
+      stream.getTracks().forEach(track => { pc.addTrack(track, stream); });
+      await pc.setRemoteDescription(new RTCSessionDescription(incomingOffer));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      callChannelRef.current?.send({
-        type:'broadcast',
-        event:'answer',
-        payload:{
-          answer,
-          sender: currentUser.id
-        }
-      });
+      callChannelRef.current?.send({ type:'broadcast', event:'answer', payload:{ answer, sender: currentUser.id } });
       setCallStatus('in-call');
     }catch(err){
       console.log("ANSWER ERROR:", err);
@@ -202,3 +149,26 @@ export default function ChatRoom({ name, contact, onBack }: any) {
       {callStatus === 'in-call'? (
         <div className="chat-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px', background:'#2ecc71', color:'white'}}>
           <span>🔊 {otherUser.name}</span>
+          <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+            <button onClick={toggleMicMute} style={{background: isMicMuted? 'red' : 'white', color: isMicMuted? 'white' : '#2ecc71', border:'none', width:'38px', height:'38px', borderRadius:'50%'}}>{isMicMuted? '🔇' : '🎤'}</button>
+            <button onClick={toggleSpeakerMute} style={{background: isSpeakerMuted? 'red' : 'white', color: isSpeakerMuted? 'white' : '#2ecc71', border:'none', width:'38px', height:'38px', borderRadius:'50%'}}>{isSpeakerMuted? '🔈' : '🔊'}</button>
+            <button onClick={endCall} style={{background:'red', color:'white', border:'none', padding:'8px 15px', borderRadius:'20px'}}>Край</button>
+          </div>
+        </div>
+      ) : (
+        <div className="chat-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px'}}>
+          <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+            <button className="back-btn" onClick={onBack}>← Back</button>
+            <h2 style={{margin:0}}>{otherUser.name}</h2>
+          </div>
+          <button onClick={startCall} disabled={callStatus!=='idle'} style={{fontSize:'24px', background:'#2ecc71', border:'none', borderRadius:'50%', width:'42px', height:'42px'}}>📞</button>
+        </div>
+      )}
+      {callStatus==='calling' && (<div style={{position:'absolute', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.85)', zIndex:100, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'white'}}><h2>Звъниш на {otherUser.name}...</h2><button onClick={endCall} style={{marginTop:'20px', background:'red', color:'white', border:'none', padding:'15px 30px', borderRadius:'30px'}}>Затвори ✕</button></div>)}
+      {callStatus==='incoming' && (<div style={{position:'absolute', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.85)', zIndex:100, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:'white'}}><h2>{otherUser.name} ти звъни!</h2><div style={{display:'flex', gap:'30px', marginTop:'30px'}}><button onClick={endCall} style={{background:'red', color:'white', border:'none', width:'70px', height:'70px', borderRadius:'50%'}}>✕</button><button onClick={answerCall} style={{background:'#2ecc71', color:'white', border:'none', width:'70px', height:'70px', borderRadius:'50%'}}>📞</button></div></div>)}
+      <audio ref={remoteAudioRef} autoPlay playsInline />
+      <div className="messages">{messages.map((msg:any) => (<div key={msg.id} className={msg.sender_id === currentUser.id? "message mine" : "message"}>{msg.text}</div>))}<div ref={bottomRef} /></div>
+      <div className="message-input"><input type="text" placeholder="Message..." value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} /><button onClick={sendMessage}>Send</button></div>
+    </div>
+  );
+}
