@@ -89,7 +89,17 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
   function createPeer(){
     const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
     pc.onicecandidate = (e)=>{ if(e.candidate){ callChannelRef.current?.send({ type:'broadcast', event:'ice', payload:{ candidate:e.candidate, sender: currentUser.id } }); } };
-    pc.ontrack = (e)=>{ if(remoteAudioRef.current){ remoteAudioRef.current.srcObject = e.streams[0]; remoteAudioRef.current.muted = isSpeakerMuted; remoteAudioRef.current.volume = 1; remoteAudioRef.current.play().catch(()=>{}); } };
+    pc.ontrack = (e) => {
+  if (remoteAudioRef.current) {
+    remoteAudioRef.current.srcObject = e.streams[0];
+    remoteAudioRef.current.muted = false;
+    remoteAudioRef.current.volume = 1;
+
+    remoteAudioRef.current.play().catch((err) => {
+      console.log("Audio play error:", err);
+    });
+  }
+};
     pcRef.current = pc; return pc;
   }
 
