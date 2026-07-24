@@ -126,10 +126,7 @@ pc.oniceconnectionstatechange = () => {
   try{
     const pc = createPeer();
 
-    console.log("INCOMING OFFER:", incomingOffer);
-await pc.setRemoteDescription(
-  new RTCSessionDescription(incomingOffer)
-);
+console.log("INCOMING OFFER:", incomingOffer);
 
 const stream = await navigator.mediaDevices.getUserMedia({
   audio: {
@@ -144,6 +141,10 @@ localStreamRef.current = stream;
 stream.getTracks().forEach(track => {
   pc.addTrack(track, stream);
 });
+
+await pc.setRemoteDescription(
+  new RTCSessionDescription(incomingOffer)
+);
     
 
 
