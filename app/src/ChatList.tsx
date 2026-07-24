@@ -234,94 +234,17 @@ if(incomingCall){
 
 
   <button
-  onClick={async()=>{setIncomingCall(null);
+  onClick={async()=>{
 
-    const currentUser = JSON.parse(
-      localStorage.getItem("ferilineUser") || "{}"
-    );
+    await supabase
+      .from("calls")
+      .update({
+        status:"accepted"
+      })
+      .eq("id", incomingCall.id);
 
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio:true
-    });
-
-
-    const pc = new RTCPeerConnection({
-      iceServers:[
-        {
-          urls:"stun:stun.l.google.com:19302"
-        }
-      ]
-    });
-
-
-
-    stream.getTracks().forEach(track=>{
-      pc.addTrack(track, stream);
-    });
-
-
-
-    pc.ontrack = (event)=>{
-
-      const audio = new Audio();
-
-      audio.srcObject = event.streams[0];
-
-      audio.play();
-
-    };
-
-
-
-    pc.onicecandidate = async(event)=>{
-
-      if(event.candidate){
-
-        await supabase
-          .from("call_ice_candidates")
-          .insert({
-            call_id: incomingCall.id,
-            user_id: currentUser.id,
-            candidate: event.candidate
-          });
-
-      }
-
-    };
-
-
-
-    await pc.setRemoteDescription(
-      incomingCall.offer
-    );
-console.log("REMOTE OFFER SET");
-
-    const answer = await pc.createAnswer();
-
-
-    await pc.setLocalDescription(answer);
-
-
-
-  await supabase
-  .from("calls")
-  .update({
-    answer: answer,
-    status:"accepted"
-  })
-  .eq(
-    "id",
-    incomingCall.id
-  );
-
-console.log("CALL ACCEPTED");
-
-
-
-
+    setSelectedContact(incomingCall.caller);
     setIncomingCall(null);
-
 
   }}
 
