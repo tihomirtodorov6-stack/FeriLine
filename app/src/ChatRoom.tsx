@@ -35,22 +35,11 @@ export default function ChatRoom({ name, contact, onBack }: any) {
   }, [currentUser.id, otherUser.id]);
 
   useEffect(() => {
-    if(!currentUser.id ||!otherUser.id) return;
-    const roomId = [currentUser.id, otherUser.id].sort().join('-');
-    const channel = supabase.channel(`call-room-${roomId}`, { config: { broadcast: { self: false } } });
-    channel.on('broadcast', {event:'offer'}, ({payload}:any)=>{
-      if(payload.sender === currentUser.id) return;
-      setIncomingOffer(payload.offer); setCallStatus('incoming');
-    }).on('broadcast', {event:'answer'}, async ({payload}:any)=>{
-      if(payload.sender === currentUser.id) return;
-      if(pcRef.current){ await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer)); setCallStatus('in-call'); }
-    }).on('broadcast', {event:'ice'}, async ({payload}:any)=>{
-      if(payload.sender === currentUser.id) return;
-      if(pcRef.current && payload.candidate){ try{ await pcRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate)); }catch(e){} }
-    }).on('broadcast', {event:'end'}, ()=>{ endCallCleanup(); }).subscribe();
-    callChannelRef.current = channel;
-    return ()=>{ supabase.removeChannel(channel); endCallCleanup(); };
-  }, [currentUser.id, otherUser.id]);
+  if(!currentUser.id || !otherUser.id) return;
+
+  console.log("CALL SYSTEM READY");
+
+}, [currentUser.id, otherUser.id]);
 
   function createPeer(){
     const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] });
