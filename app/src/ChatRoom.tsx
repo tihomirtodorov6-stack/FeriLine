@@ -121,7 +121,9 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
     const pc = createPeer();
 
     console.log("INCOMING OFFER:", incomingOffer);
-
+await pc.setRemoteDescription(
+      new RTCSessionDescription(incomingOffer)
+    );
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
@@ -136,9 +138,7 @@ const currentUser = JSON.parse(localStorage.getItem("ferilineUser") || "{}");
       pc.addTrack(track, stream);
     });
 
-    await pc.setRemoteDescription(
-      new RTCSessionDescription(incomingOffer)
-    );
+    
 
     const answer = await pc.createAnswer();
 
