@@ -47,4 +47,53 @@ export async function requestNotificationPermission() {
     const userId = savedUser?.id;
     if (userId && subscription) {
       const subJson = subscription.toJSON();
-      await sup
+            await supabase
+        .from("users")
+        .update({
+          push_subscription: subJson,
+          push_token: JSON.stringify(subJson)
+        })
+        .eq("id", userId);
+
+      console.log("PUSH SAVED");
+    }
+
+    return subscription;
+
+  } catch (error) {
+    console.log("PUSH ERROR:", error);
+    return null;
+  }
+}
+
+export async function disableNotifications() {
+  try {
+    const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+
+    if (!registration) return false;
+
+    const subscription = await registration.pushManager.getSubscription();
+
+    if (subscription) {
+      await subscription.unsubscribe();
+    }
+
+    const savedUser = JSON.parse(localStorage.getItem("ferilineUser") || "null");
+
+    if (savedUser?.id) {
+      await supabase
+        .from("users")
+        .update({
+          push_subscription: null,
+          push_token: null
+        })
+        .eq("id", savedUser.id);
+    }
+
+    return true;
+
+  } catch (error) {
+    console.log("DISABLE PUSH ERROR:", error);
+    return false;
+  }
+}
