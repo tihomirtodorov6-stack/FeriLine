@@ -1,0 +1,72 @@
+export const ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+];import { supabase } from "../supabase";
+
+export const createSession = async (callerId: string, calleeId: string) => {
+  const { data, error } = await supabase.from("call_sessions_v2")
+   .insert({ caller_id: callerId, callee_id: calleeId, type: 'voice' })
+   .select().single();
+  if(error) throw error;
+  return data;
+}import { useEffect, useRef, useState } from "react";
+import { supabase } from "../supabase";
+import { ICE_SERVERS } from "./constants";
+
+export default function ActiveCallScreen({ callId, userId, onEnd }: any) {
+  const [status, setStatus] = useState("Звъни...");
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const localStream = useRef<MediaStream | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const start = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      localStream.current = stream;
+      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      pcRef.current = pc;
+      stream.getTracks().forEach(t => pc.addTrack(t, stream));
+      pc.ontrack = (e) => { if (audioRef.current) { audioRef.current.srcObject = e.streams[0]; audioRef.current.play(); } setStatus("Свързани"); };
+      pc.onicecandidate = (e) => { if (e.candidate) supabase.from("call_ice_v2").insert({ call_id: callId, user_id: userId, candidate: e.candidate.toJSON() }); };
+
+      const { data: call } = await supabase.from("call_sessions_v2").select("*").eq("id", callId).single();
+      const isCaller = call.caller_id === userId;
+
+      if (isCaller) {
+        const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+        await supabase.from("call_sessions_v2").update({ offer }).eq("id", callId);
+        supabase.channel(`call-${callId}`).on("postgres_changes", { event: "UPDATE", schema: "public", table: "call_sessions_v2", filter: `id=eq.${callId}` }, async (p: any) => {
+          if (p.new.answer) await pc.setRemoteDescription(new RTCSessionDescription(p.new.answer));
+        }).subscribe();
+      } else {
+        await pc.setRemoteDescription(new RTCSessionDescription(call.offer));
+        const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+        await supabase.from("call_sessions_v2").update({ answer, status: "connected" }).eq("id", callId);
+      }
+      supabase.channel(`ice-${callId}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "call_ice_v2", filter: `call_id=eq.${callId}` }, async (p: any) => {
+        if (p.new.user_id!== userId) try { await pc.addIceCandidate(new RTCIceCandidate(p.new.candidate)); } catch {}
+      }).subscribe();
+    };
+    start();
+    return () => { pcRef.current?.close(); localStream.current?.getTracks().forEach(t => t.stop()); };
+  }, [callId]);
+
+  return (
+    <div style={{ height: "100vh", background: "black", color: "white", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <h2>{status}</h2>
+      <audio ref={audioRef} autoPlay />
+      <button onClick={onEnd} style={{ marginTop: 20, padding: 16, background: "red", borderRadius: 12, color: "white" }}>Край</button>
+    </div>
+  );
+}import { useParams, useNavigate } from "react-router-dom";
+import ActiveCallScreen from "./ActiveCallScreen";
+
+export default function CallingPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const userId = JSON.parse(localStorage.getItem("ferilineUser") || "{}").id;
+
+  return <ActiveCallScreen callId={id} userId={userId} onEnd={() => navigate(-1)} />;
+}
