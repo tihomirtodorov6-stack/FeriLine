@@ -9,7 +9,9 @@ self.addEventListener('push', (event) => {
       data: { url: data.url || (data.callId ? `/call/${data.callId}` : "/"), callId: data.callId },
       requireInteraction: true,
       vibrate: [500, 200, 500, 200, 500],
-      tag: data.callId || 'feriline-call'
+      tag: data.callId || 'feriline-call',
+      renotify: true,
+      silent: false
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) { console.error(e); }
