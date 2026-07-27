@@ -99,4 +99,6 @@ export default function App() {
       <button className="primary-btn" onClick={login}>Login</button>
     </div>
   );
-}
+}import CallingPage from "./calling/CallingPage";
+//...
+<Route path="/calling/:id" element={<CallingPage />} />
