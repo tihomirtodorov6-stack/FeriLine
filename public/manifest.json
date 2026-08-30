@@ -1,0 +1,21 @@
+{
+  "name": "VoziMe.bg",
+  "short_name": "VoziMe",
+  "description": "Споделено пътуване Полско Косово - Бяла - 3 лв",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F4C75",
+  "theme_color": "#0F4C75",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
