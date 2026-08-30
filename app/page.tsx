@@ -1,0 +1,215 @@
+'use client';
+import { useState, useEffect } from 'react';
+
+type Lang = 'BG' | 'EN';
+const t = {
+  BG: {
+    appName: 'VoziMe.bg',
+    route: 'Полско Косово ↔ Бяла',
+    login: 'Вход', register: 'Регистрация', logout: 'Изход',
+    find: 'Намери', my: 'Моите', offer: 'Предложи', edit: 'Редактирай',
+    from: 'От', to: 'До', departure: 'Тръгване', return: 'Връщане', seats: 'Места', price: 'Цена €', message: 'Съобщение', date: 'Дата',
+    today: 'Днес', tomorrow: 'Утре',
+    publish: 'Публикувай', save: 'Запази промените', cancel: 'Откажи',
+    full: 'ПЪЛНА', free: 'Свободна', markFull: 'Маркирай ПЪЛНА',
+    requests: 'Заявки', approve: 'Одобри', reject: 'Откажи',
+    phone: 'Телефон', call: 'Обади се', viber: 'Viber',
+    noRides: 'Няма свободни коли днес', noMyRides: 'Нямаш обяви в €',
+    limit: 'Лимит 2 обяви за 24 часа! Премиум 2.50€/месец',
+    autoDelete: 'Обявите се трият след 48ч. Само за Днес и Утре.',
+    euroNote: '💶 Всички цени са в ЕВРО • 1.50€ = 2.93 лв',
+    requestSent: 'Заявката е изпратена!',
+    alreadyRequested: 'Вече си заявил',
+    carFull: 'Колата е пълна!'
+  },
+  EN: {
+    appName: 'VoziMe.bg',
+    route: 'Polsko Kosovo ↔ Byala',
+    login: 'Login', register: 'Register', logout: 'Logout',
+    find: 'Find', my: 'My Rides', offer: 'Offer', edit: 'Edit',
+    from: 'From', to: 'To', departure: 'Depart', return: 'Return', seats: 'Seats', price: 'Price €', message: 'Message', date: 'Date',
+    today: 'Today', tomorrow: 'Tomorrow',
+    publish: 'Publish', save: 'Save changes', cancel: 'Cancel',
+    full: 'FULL', free: 'Free', markFull: 'Mark FULL',
+    requests: 'Requests', approve: 'Approve', reject: 'Reject',
+    phone: 'Phone', call: 'Call', viber: 'Viber',
+    noRides: 'No free rides today', noMyRides: 'You have no rides',
+    limit: 'Limit 2 rides / 24h! Premium 2.50€/month',
+    autoDelete: 'Rides auto-delete after 48h. Only Today & Tomorrow.',
+    euroNote: '💶 All prices in EURO • 1.50€',
+    requestSent: 'Request sent!',
+    alreadyRequested: 'Already requested',
+    carFull: 'Car is full!'
+  }
+};
+
+type User = { id:string, firstName:string, lastName:string, phone:string, password:string };
+type Request = { id:string, passengerName:string, passengerPhone:string, status:'pending'|'approved'|'rejected' };
+type Ride = { id:string, driverName:string, driverPhone:string, driverId:string, from:string, to:string, time:string, returnTime:string, date:'Днес'|'Утре'|'Today'|'Tomorrow', seats:number, price:number, message:string, createdAt:number, isFull:boolean, requests:Request[] };
+
+export default function Home() {
+  const [lang, setLang] = useState<Lang>('BG');
+  const tr = t[lang];
+  const [users, setUsers] = useState<User[]>([]);
+  const [currentUser, setCurrentUser] = useState<User|null>(null);
+  const [mode, setMode] = useState<'login'|'register'|'app'>('login');
+  const [tab, setTab] = useState<'find'|'my'|'offer'>('find');
+  const [rides, setRides] = useState<Ride[]>([]);
+  const [editingRide, setEditingRide] = useState<string|null>(null);
+  const [form, setForm] = useState({firstName:'', lastName:'', phone:'', password:''});
+  const [offerForm, setOfferForm] = useState({from:'Полско Косово', to:'Бяла', time:'07:30', returnTime:'17:00', date:'Днес' as any, seats:'3', price:'1.50', message:'Тръгвам от паметника в 8:00'});
+
+  useEffect(()=>{
+    const savedLang = localStorage.getItem('vozime_lang') as Lang;
+    if(savedLang) setLang(savedLang);
+    const u = localStorage.getItem('vozime_users');
+    const cu = localStorage.getItem('vozime_current');
+    let r = localStorage.getItem('vozime_rides_euro');
+    if(u) setUsers(JSON.parse(u));
+    if(cu) { setCurrentUser(JSON.parse(cu)); setMode('app'); }
+    if(r){
+      let parsed:Ride[] = JSON.parse(r);
+      const filtered = parsed.filter(ride => Date.now() - ride.createdAt < 48*60*60*1000);
+      if(filtered.length!==parsed.length) localStorage.setItem('vozime_rides_euro', JSON.stringify(filtered));
+      setRides(filtered);
+    }
+  },[]);
+
+  const changeLang = (l:Lang)=>{
+    setLang(l);
+    localStorage.setItem('vozime_lang', l);
+    setOfferForm(f=>({...f, from: l==='BG'?'Полско Косово':'Polsko Kosovo', to: l==='BG'?'Бяла':'Byala', date: l==='BG'?'Днес':'Today'}));
+  };
+
+  const saveUsers = (nu:User[])=>{ setUsers(nu); localStorage.setItem('vozime_users', JSON.stringify(nu)); };
+  const saveRides = (nr:Ride[])=>{ setRides(nr); localStorage.setItem('vozime_rides_euro', JSON.stringify(nr)); };
+
+  const handleRegister = ()=>{
+    if(!form.firstName||!form.lastName||!form.phone||!form.password){ alert('Попълни всички'); return; }
+    if(users.find(u=>u.phone===form.phone)){ alert('Телефонът съществува'); return; }
+    const nu:User={id:Date.now().toString(),...form}; saveUsers([...users,nu]);
+    localStorage.setItem('vozime_current', JSON.stringify(nu)); setCurrentUser(nu); setMode('app');
+  };
+  const handleLogin = ()=>{
+    const f=users.find(u=>u.phone===form.phone&&u.password===form.password);
+    if(!f){ alert('Грешен телефон или парола'); return; }
+    localStorage.setItem('vozime_current', JSON.stringify(f)); setCurrentUser(f); setMode('app');
+  };
+  const logout = ()=>{ localStorage.removeItem('vozime_current'); setCurrentUser(null); setMode('login'); };
+
+  const publishRide = ()=>{
+    if(!currentUser) return;
+    const last24h = rides.filter(r=>r.driverId===currentUser.id && Date.now()-r.createdAt < 24*60*60*1000);
+    if(!editingRide && last24h.length>=2){ alert(tr.limit); return; }
+    const nr:Ride={ id: editingRide || Date.now().toString(), driverName:`${currentUser.firstName} ${currentUser.lastName}`, driverPhone:currentUser.phone, driverId:currentUser.id, from:offerForm.from, to:offerForm.to, time:offerForm.time, returnTime:offerForm.returnTime, date:offerForm.date, seats:parseInt(offerForm.seats)||1, price:parseFloat(offerForm.price.replace(',','.'))||1.50, message:offerForm.message, createdAt: editingRide? rides.find(r=>r.id===editingRide)!.createdAt : Date.now(), isFull: editingRide? rides.find(r=>r.id===editingRide)!.isFull : false, requests: editingRide? rides.find(r=>r.id===editingRide)!.requests : [] };
+    if(editingRide){ saveRides(rides.map(r=>r.id===editingRide?nr:r)); setEditingRide(null); } else saveRides([nr,...rides]);
+    setOfferForm({from: lang==='BG'?'Полско Косово':'Polsko Kosovo', to: lang==='BG'?'Бяла':'Byala', time:'07:30', returnTime:'17:00', date: lang==='BG'?'Днес':'Today' as any, seats:'3', price:'1.50', message:'Тръгвам от паметника в 8:00'});
+    setTab('my');
+  };
+
+  const startEdit = (ride:Ride)=>{ setOfferForm({from:ride.from, to:ride.to, time:ride.time, returnTime:ride.returnTime, date:ride.date, seats:ride.seats.toString(), price:ride.price.toString(), message:ride.message}); setEditingRide(ride.id); setTab('offer'); };
+  const toggleFull = (id:string)=> saveRides(rides.map(r=> r.id===id? {...r, isFull:!r.isFull} : r));
+  const deleteRide = (id:string)=>{ if(confirm('Delete? / Да изтрия?')) saveRides(rides.filter(r=>r.id!==id)); };
+  const requestRide = (id:string)=>{
+    if(!currentUser) return;
+    const nrides = rides.map(r=>{
+      if(r.id!==id) return r;
+      if(r.isFull){ alert(tr.carFull); return r; }
+      if(r.requests.find(q=>q.passengerPhone===currentUser.phone)){ alert(tr.alreadyRequested); return r; }
+      if(r.driverId===currentUser.id) return r;
+      return {...r, requests:[...r.requests, {id:Date.now().toString(), passengerName:`${currentUser.firstName} ${currentUser.lastName}`, passengerPhone:currentUser.phone, status:'pending' as const}]};
+    });
+    saveRides(nrides); alert(tr.requestSent);
+  };
+  const handleRequestAction = (rideId:string, reqId:string, action:'approved'|'rejected')=> saveRides(rides.map(r=> r.id===rideId? {...r, requests:r.requests.map(q=> q.id===reqId? {...q, status:action} : q)} : r));
+
+  const appStyle:React.CSSProperties={height:'100dvh',width:'100vw',maxWidth:'480px',margin:'0 auto',background:'white',display:'flex',flexDirection:'column',overflow:'hidden'};
+  const headerStyle:React.CSSProperties={height:'60px',minHeight:'60px',background:'#0F4C75',color:'white',display:'flex',alignItems:'center',padding:'0 12px',gap:'8px',flexShrink:0};
+  const tabsStyle:React.CSSProperties={height:'56px',minHeight:'56px',display:'flex',gap:'6px',padding:'8px',background:'#f1f3f4',borderBottom:'1px solid #eee',flexShrink:0};
+  const contentStyle:React.CSSProperties={flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch' as any};
+
+  if(mode!=='app'){
+    return (<main style={appStyle}><div style={{...contentStyle,padding:'24px'}}><div style={{display:'flex',justifyContent:'flex-end',gap:'6px'}}><button onClick={()=>changeLang('BG')} style={{padding:'6px 12px',borderRadius:'20px',border:'none',fontWeight:'bold',background:lang==='BG'?'#0F4C75':'#eee',color:lang==='BG'?'white':'#666'}}>BG</button><button onClick={()=>changeLang('EN')} style={{padding:'6px 12px',borderRadius:'20px',border:'none',fontWeight:'bold',background:lang==='EN'?'#0F4C75':'#eee',color:lang==='EN'?'white':'#666'}}>EN</button></div><div style={{textAlign:'center',marginTop:'20px',marginBottom:'24px'}}><div style={{width:'64px',height:'64px',background:'#2ECC71',borderRadius:'20px',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto',fontSize:'32px'}}>🚗</div><h1 style={{fontSize:'28px',fontWeight:'bold',margin:'12px 0 4px'}}>{tr.appName}</h1><p style={{fontSize:'13px',color:'#888'}}>{tr.route} • 1.50€</p></div><div style={{display:'flex',gap:'8px',background:'#f1f3f4',padding:'4px',borderRadius:'12px',marginBottom:'24px',height:'48px'}}><button onClick={()=>setMode('login')} style={{flex:1,borderRadius:'10px',border:'none',fontWeight:'bold',background:mode==='login'?'white':'transparent',fontSize:'16px'}}>{tr.login}</button><button onClick={()=>setMode('register')} style={{flex:1,borderRadius:'10px',border:'none',fontWeight:'bold',background:mode==='register'?'white':'transparent',fontSize:'16px'}}>{tr.register}</button></div><div style={{display:'flex',flexDirection:'column',gap:'12px'}}>{mode==='register'? <><div style={{display:'flex',gap:'8px'}}><input placeholder="First Name / Име" value={form.firstName} onChange={e=>setForm({...form,firstName:e.target.value})} style={{flex:1,border:'1px solid #ddd',padding:'14px',borderRadius:'12px',fontSize:'16px'}}/><input placeholder="Last Name / Фамилия" value={form.lastName} onChange={e=>setForm({...form,lastName:e.target.value})} style={{flex:1,border:'1px solid #ddd',padding:'14px',borderRadius:'12px',fontSize:'16px'}}/></div><input placeholder={tr.phone} value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} style={{border:'1px solid #ddd',padding:'14px',borderRadius:'12px',fontSize:'16px'}}/><input type="password" placeholder="Password / Парола" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} style={{border:'1px solid #ddd',padding:'14px',borderRadius:'12px',fontSize:'16px'}}/><button onClick={handleRegister} style={{background:'#0F4C75',color:'white',padding:'16px',borderRadius:'12px',fontWeight:'bold',border:'none',height:'52px'}}>{tr.register}</button></>:<><input placeholder={tr.phone} value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} style={{border:'1px solid #ddd',padding:'14px',borderRadius:'12px',fontSize:'16px'}}/><input type="password" placeholder="Password / Парола" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} style={{border:'1px solid #ddd',padding:'14px',borderRadius:'12px',fontSize:'16px'}}/><button onClick={handleLogin} style={{background:'#2ECC71',color:'#0F4C75',padding:'16px',borderRadius:'12px',fontWeight:'bold',border:'none',height:'52px'}}>{tr.login}</button></>}</div></div></main>);
+  }
+
+  const myRides = rides.filter(r=>r.driverId===currentUser?.id);
+
+  return (
+    <main style={appStyle}>
+      <header style={headerStyle}>
+        <div style={{width:'36px',height:'36px',background:'#2ECC71',borderRadius:'10px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>🚗</div>
+        <div style={{flex:1,overflow:'hidden'}}><div style={{fontWeight:'bold',fontSize:'13px',whiteSpace:'nowrap'}}>{currentUser?.firstName} {currentUser?.lastName}</div><div style={{fontSize:'10px',opacity:0.8}}>{currentUser?.phone}</div></div>
+        <div style={{display:'flex',gap:'4px',flexShrink:0}}><button onClick={()=>changeLang('BG')} style={{padding:'5px 10px',borderRadius:'20px',border:'none',fontWeight:'bold',background:lang==='BG'?'white':'rgba(255,255,255,0.2)',color:lang==='BG'?'#0F4C75':'white',fontSize:'11px'}}>BG</button><button onClick={()=>changeLang('EN')} style={{padding:'5px 10px',borderRadius:'20px',border:'none',fontWeight:'bold',background:lang==='EN'?'white':'rgba(255,255,255,0.2)',color:lang==='EN'?'#0F4C75':'white',fontSize:'11px'}}>EN</button></div>
+        <button onClick={logout} style={{fontSize:'11px',background:'rgba(255,255,255,0.2)',border:'none',color:'white',padding:'6px 10px',borderRadius:'20px',flexShrink:0}}>{tr.logout}</button>
+      </header>
+
+      <div style={tabsStyle}>
+        <button onClick={()=>setTab('find')} style={{flex:1,borderRadius:'12px',fontWeight:'bold',border:'none',background:tab==='find'?'#0F4C75':'white',color:tab==='find'?'white':'#666',fontSize:'12px'}}>{tr.find} ({rides.filter(r=>!r.isFull).length})</button>
+        <button onClick={()=>setTab('my')} style={{flex:1,borderRadius:'12px',fontWeight:'bold',border:'none',background:tab==='my'?'#0F4C75':'white',color:tab==='my'?'white':'#666',fontSize:'12px'}}>{tr.my} ({myRides.length})</button>
+        <button onClick={()=>setTab('offer')} style={{flex:1,borderRadius:'12px',fontWeight:'bold',border:'none',background:tab==='offer'?'#0F4C75':'white',color:tab==='offer'?'white':'#666',fontSize:'12px'}}>{editingRide? tr.edit : tr.offer}</button>
+      </div>
+
+      <div style={contentStyle}>
+        {tab==='find' && (
+          <div style={{padding:'12px',display:'flex',flexDirection:'column',gap:'12px'}}>
+            {rides.filter(r=>!r.isFull).map(ride=>(
+              <div key={ride.id} style={{border:'1px solid #eee',borderRadius:'16px',padding:'14px'}}>
+                <div style={{display:'flex',justifyContent:'space-between'}}><div><span style={{fontWeight:'bold'}}>{ride.from} → {ride.to}</span> <span style={{fontSize:'11px',background:'#e6f9ed',padding:'2px 6px',borderRadius:'10px',marginLeft:'6px'}}>{ride.date}</span></div><div style={{background:'#0F4C75',color:'white',fontWeight:'bold',padding:'4px 12px',borderRadius:'20px',fontSize:'14px'}}>{ride.price.toFixed(2)}€</div></div>
+                <div style={{fontSize:'12px',color:'#888',marginTop:'4px'}}>{tr.departure}: {ride.time} • {tr.return}: {ride.returnTime} • {ride.seats} {tr.seats}</div>
+                <div style={{marginTop:'10px',padding:'10px',background:'#f8f9fa',borderRadius:'12px'}}>
+                  <div style={{fontWeight:'bold',fontSize:'14px'}}>👤 {ride.driverName}</div>
+                  <div style={{fontSize:'13px',marginTop:'6px'}}>"{ride.message}"</div>
+                  <div style={{marginTop:'10px',display:'flex',gap:'8px'}}>
+                    <a href={`tel:${ride.driverPhone}`} style={{flex:1,background:'#2ECC71',color:'#0F4C75',textAlign:'center',padding:'10px',borderRadius:'10px',fontWeight:'bold',fontSize:'13px',textDecoration:'none'}}>📞 {ride.driverPhone}</a>
+                    <a href={`https://wa.me/${ride.driverPhone.replace(/[^0-9]/g,'')}`} target="_blank" style={{background:'#25D366',color:'white',padding:'10px 14px',borderRadius:'10px',fontWeight:'bold',fontSize:'13px',textDecoration:'none'}}>{tr.viber}</a>
+                  </div>
+                </div>
+                <button onClick={()=>requestRide(ride.id)} style={{width:'100%',marginTop:'10px',background:'#0F4C75',color:'white',padding:'12px',borderRadius:'12px',fontWeight:'bold',border:'none',height:'44px'}}>
+                  {ride.requests.find(q=>q.passengerPhone===currentUser?.phone)? `${ride.requests.find(q=>q.passengerPhone===currentUser?.phone)?.status}` : `${tr.find} - ${ride.price.toFixed(2)}€`}
+                </button>
+              </div>
+            ))}
+            {rides.filter(r=>!r.isFull).length===0 && <div style={{textAlign:'center',color:'#888',marginTop:'30px'}}>{tr.noRides}</div>}
+          </div>
+        )}
+
+        {tab==='my' && (
+          <div style={{padding:'12px',display:'flex',flexDirection:'column',gap:'12px'}}>
+            {myRides.map(ride=>(
+              <div key={ride.id} style={{border: ride.isFull? '2px solid red' : '2px solid #0F4C75',borderRadius:'16px',padding:'14px', background: ride.isFull? '#fff5f5' : 'white'}}>
+                <div style={{display:'flex',justifyContent:'space-between'}}><div style={{fontWeight:'bold',fontSize:'13px'}}>{ride.date}: {ride.from}→{ride.to} • {ride.time}/{ride.returnTime} • {ride.price.toFixed(2)}€ {ride.isFull && `🔴 ${tr.full}`}</div></div>
+                <div style={{display:'flex',gap:'6px',marginTop:'10px'}}>
+                  <button onClick={()=>startEdit(ride)} style={{flex:1,background:'#0F4C75',color:'white',border:'none',padding:'8px',borderRadius:'10px',fontWeight:'bold',fontSize:'12px'}}>✏️ {tr.edit}</button>
+                  <button onClick={()=>toggleFull(ride.id)} style={{flex:1,background: ride.isFull? '#2ECC71' : '#ff4444',color:'white',border:'none',padding:'8px',borderRadius:'10px',fontWeight:'bold',fontSize:'12px'}}>{ride.isFull? tr.free : tr.full}</button>
+                  <button onClick={()=>deleteRide(ride.id)} style={{background:'#eee',border:'none',padding:'8px 12px',borderRadius:'10px',fontSize:'12px'}}>🗑️</button>
+                </div>
+                <div style={{marginTop:'12px'}}><div style={{fontSize:'13px',fontWeight:'bold'}}>{tr.requests} ({ride.requests.length}):</div>
+                  {ride.requests.map(req=>(
+                    <div key={req.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',border:'1px solid #eee',padding:'8px 10px',borderRadius:'10px',marginBottom:'6px',marginTop:'6px'}}>
+                      <div><div style={{fontWeight:'bold',fontSize:'13px'}}>{req.passengerName}</div><a href={`tel:${req.passengerPhone}`} style={{fontSize:'12px',color:'#0F4C75',fontWeight:'bold'}}>{req.passengerPhone} 📞</a><div style={{fontSize:'11px'}}>{req.status}</div></div>
+                      {req.status==='pending' && <div style={{display:'flex',gap:'6px'}}><button onClick={()=>handleRequestAction(ride.id, req.id, 'approved')} style={{background:'#2ECC71',border:'none',padding:'6px 12px',borderRadius:'20px',fontWeight:'bold',fontSize:'12px'}}>{tr.approve}</button><button onClick={()=>handleRequestAction(ride.id, req.id, 'rejected')} style={{background:'#eee',border:'none',padding:'6px 12px',borderRadius:'20px',fontSize:'12px'}}>X</button></div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {myRides.length===0 && <div style={{textAlign:'center',color:'#888',marginTop:'20px'}}>{tr.noMyRides}</div>}
+          </div>
+        )}
+
+        {tab==='offer' && (
+          <div style={{padding:'16px',display:'flex',flexDirection:'column',gap:'10px'}}>
+            <h2 style={{fontWeight:'bold',fontSize:'15px',margin:'0'}}>{editingRide? `✏️ ${tr.edit}` : tr.offer}</h2>
+            <div style={{display:'flex',gap:'8px'}}><input value={offerForm.from} onChange={e=>setOfferForm({...offerForm,from:e.target.value})} placeholder={tr.from} style={{flex:1,border:'1px solid #ddd',padding:'12px',borderRadius:'12px',fontSize:'16px'}}/><input value={offerForm.to} onChange={e=>setOfferForm({...offerForm,to:e.target.value})} placeholder={tr.to} style={{flex:1,border:'1px solid #ddd',padding:'12px',borderRadius:'12px',fontSize:'16px'}}/></div>
+            <div style={{display:'flex',gap:'8px'}}><select value={offerForm.date} onChange={e=>setOfferForm({...offerForm,date:e.target.value as any})} style={{flex:1,border:'1px solid #ddd',padding:'12px',borderRadius:'12px',fontSize:'16px'}}><option>{tr.today}</option><option>{tr.tomorrow}</option></select><input type="time" value={offerForm.time} onChange={e=>setOfferForm({...offerForm,time:e.target.value})} style={{flex:1,border:'1px solid #ddd',padding:'12px',borderRadius:'12px',fontSize:'16px'}}/><input type="time" value={offerForm.returnTime} onChange={e=>setOfferForm({...offerForm,returnTime:e.target.value})} style={{flex:1,border:'1px solid #ddd',padding:'12px',borderRadius:'12px',fontSize:'16px'}}/></div>
+            <div style={{display:'flex',gap:'8px'}}><div style={{flex:1}}><label style={{fontSize:'11px',color:'#888'}}>{tr.seats}</label><input inputMode="numeric" value={offerForm.seats} onChange={e=>setOfferForm({...offerForm,seats:e.target.value})} onFocus={e=>e.target.select()} style={{width:'100%',border:'1px solid #ddd',padding:'12px',borderRadius:'12px',fontSize:'16px'}}/></div><div style={{flex:1}}><label style={{fontSize:'11px',color:'#888'}}>{tr.price}</label><input inputMode="decimal" value={offerForm.price} onChange={e=>setOfferForm({...offerForm,price:e.target.value})} onFocus={e=>e.target.select()} style={{width:'100%',border:'1px solid #0F4C75',padding:'12px',borderRadius:'12px',fontSize:'16px',fontWeight:'bold'}}/></div></div>
+            <textarea value={offerForm.message} onChange={e=>setOfferForm({...offerForm,message:e.target.value})} placeholder={tr.message} style={{border:'1px solid #ddd',padding:'12px',borderRadius:'12px',minHeight:'80px',fontSize:'16px',resize:'none'}}/>
+            <button onClick={publishRide} style={{width:'100%',background: editingRide? '#0F4C75' : '#2ECC71',color: editingRide? 'white' : '#0F4C75',padding:'16px',borderRadius:'12px',fontWeight:'bold',border:'none',fontSize:'16px',height:'52px'}}>{editingRide? `💾 ${tr.save}` : `${tr.publish} - ${offerForm.price}€`}</button>
+            {editingRide && <button onClick={()=>{setEditingRide(null); setTab('my');}} style={{width:'100%',background:'#eee',padding:'12px',borderRadius:'12px',border:'none'}}>{tr.cancel}</button>}
+            <div style={{background:'#e6f9ed',padding:'10px',borderRadius:'10px',fontSize:'11px',color:'#0F4C75',textAlign:'center'}}>{tr.euroNote}</div>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
